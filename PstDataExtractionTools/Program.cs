@@ -9,7 +9,7 @@ namespace PstDataExtractionTools
 {
     class Program
     {
-        //folder path of Aktiv1, Aktiv2, final copy destination and excel file
+        /*folder path of Aktiv1, Aktiv2, final copy destination and excel file*/
         //string Aktiv1FolderPath = @"D:\Sachith\PstTest\pstofbothAktiv1andAktiv2";
         //string Aktiv2FolderPath = @"D:\Sachith\PstTest\pstofbothAktiv1andAktiv2";
         //string FinalCopyFolderPath = @"D:\Sachith\PstTest\test";
@@ -139,6 +139,7 @@ namespace PstDataExtractionTools
 
                                 //}
 
+                                //check if username is not null
                                 //if (!string.IsNullOrEmpty(excelReader.GetString(3)) && excelReader.GetString(3).ToLower().Equals("cross-checking"))
                                 //if (!string.IsNullOrEmpty(excelReader.GetString(2)) && !(excelReader.GetString(3).ToLower().Equals("Done") || excelReader.GetString(3).ToLower().Equals("No Data Found")))
                                 if (!string.IsNullOrWhiteSpace(excelReader.GetString(2)))
