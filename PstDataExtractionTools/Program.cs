@@ -1,9 +1,13 @@
 using ExcelDataReader;
+using OfficeOpenXml.Core.ExcelPackage;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using Excel = Microsoft.Office.Interop.Excel;
 
 namespace PstDataExtractionTools
 {
@@ -36,7 +40,7 @@ namespace PstDataExtractionTools
             Console.WriteLine("-----------------------------------Start----------------------------------------");
             prog.InitialLog.AppendLine("\n-----------------------------------Start of Log----------------------------------------");
 
-            Console.WriteLine("Please select option \n1) Read Excel File and Move & Rename folders \n2) Remove .pst from folder name \n3) Remove unwanted folders from destination path \n4) Rename PST Files\n");
+            Console.WriteLine("Please select option \n1) Read Excel File and Move & Rename folders \n2) Remove .pst from folder name \n3) Remove unwanted folders from destination path \n4) Rename PST Files\n5) Get Mismatch count from log file");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -64,6 +68,11 @@ namespace PstDataExtractionTools
                     Console.WriteLine("Rename PST Files");
                     prog.InitialLog.AppendLine("\nRename PST Files");
                     prog.RenameInternalPSTFiles();
+                    break;
+                case 5:
+                    Console.WriteLine("Get Mismatch count from log file");
+                    //prog.InitialLog.AppendLine("\nGet Mismatch count from log file");
+                    prog.GetMismatchCount();
                     break;
                 default:
                     Console.WriteLine("Please select valid option");
@@ -300,12 +309,12 @@ namespace PstDataExtractionTools
                 var strFolderName = folder.Substring(folder.LastIndexOf("\\") + 1).Replace(" ", string.Empty);
 
                 //if dash(-) exists in folder name, then remove it and its proceding characters
-                if (int.TryParse(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1), out int n))
+                if (strFolderName.Contains("-") && int.TryParse(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1), out int n))
                 {
                     strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
                 }
                 //if folder name contains 'extern', then remove it and its preceding string
-                if ("extern".Contains(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1).ToLower().Trim()))
+                if (strFolderName.Contains("-") && "extern".Contains(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1).ToLower().Trim()))
                 {
                     strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
                 }
@@ -735,6 +744,72 @@ namespace PstDataExtractionTools
                 Console.WriteLine(string.Format("Error for user: {0}. Could not find data. Please check logs at {1}", searchString + " " + Aktiv, LogFilePath));
                 //AddLogs(LogFilePath + "\\", "Username:- " + searchString + ". Could not find data.");
                 AddLogs(LogFilePath + "\\", searchString + " " + Aktiv);
+            }
+        }
+
+        private void GetMismatchCount()
+        {
+            //path of log file
+            //string filePath = @"C:\Users\s.poojary\Desktop\SavingLogPC15 first part.txt";
+            //path of destination text file
+            //string destinationPath = @"C:\Users\s.poojary\Desktop\LogPC15FirstPart.txt";
+
+
+            //path of log file
+            string filePath;
+            //path of destination text file
+            string destinationPath;
+
+            try
+            {
+                Console.WriteLine("\nEnter path of log file");
+                filePath = Console.ReadLine();
+                //InitialLog.AppendLine("\nLog file path: " + filePath);
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    throw new InvalidFilePathException("Please enter valid file path\n");
+                }
+
+                Console.WriteLine("\nEnter path of destination log file");
+                destinationPath = Console.ReadLine();
+                //InitialLog.AppendLine("\nDestination log file path: " + destinationPath);
+                if (string.IsNullOrEmpty(destinationPath))
+                {
+                    throw new InvalidFilePathException("Please enter valid file path\n");
+                }
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                //AddLogs(LogFilePath + "\\", ex.Message);
+                return;
+            }
+
+            if (File.Exists(filePath))
+            {
+                StreamWriter sw = new StreamWriter(destinationPath, true, Encoding.UTF8);
+
+                var lines = File.ReadAllLines(filePath);
+                for (var i = 0; i < lines.Length; i += 1)
+                {
+                    var line = lines[i];
+                    //check if the current line contains "Items converted :"
+                    if (line.Contains("Items converted :"))
+                    {
+                        //take the string after the colon(:) and split it via '/' to get the count
+                        var strCount = line.Split(':');
+                        var count = strCount[1].Trim().Split('/');
+                        //check if count is mismatched and that it is greater than 0
+                        if((Convert.ToInt32(count[0]) != Convert.ToInt32(count[1])) && Convert.ToInt32(count[0]) > 0)
+                        {
+                            //format the string to be printed in the txt file
+                            var strFolderName = lines[i - 1].Substring(lines[i - 1].LastIndexOf("\\") + 1);
+                            var strFolderNameCount = string.Format("{0}/{1}", strFolderName, count[0]);
+                            sw.WriteLine(strFolderNameCount);
+                        }
+                    }
+                }
+                sw.Close();
             }
         }
 
