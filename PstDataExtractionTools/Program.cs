@@ -1,4 +1,5 @@
 using ExcelDataReader;
+using OfficeOpenXml.Core.ExcelPackage;
 using System;
 using System.Data;
 using System.IO;
@@ -736,6 +737,83 @@ namespace PstDataExtractionTools
                 //AddLogs(LogFilePath + "\\", "Username:- " + searchString + ". Could not find data.");
                 AddLogs(LogFilePath + "\\", searchString + " " + Aktiv);
             }
+        }
+
+        /*Incomplete*/
+        private void WriteToExcel()
+        {
+            //Console.WriteLine("\nEnter path of excel file");
+            //ExcelFilePath = Console.ReadLine();
+            //InitialLog.AppendLine("\nExcel file path: " + ExcelFilePath);
+
+            ExcelFilePath = @"D:\Sachith\PstTest\TestUsers.xlsx";
+
+            //Microsoft.Office.Interop.Excel.Workbook mWorkBook;
+            //Microsoft.Office.Interop.Excel.Sheets mWorkSheets;
+            //Microsoft.Office.Interop.Excel.Worksheet mWSheet1;
+            //Microsoft.Office.Interop.Excel.Application oXL;
+
+            //oXL = new Microsoft.Office.Interop.Excel.Application();
+            //oXL.Visible = true;
+            //oXL.DisplayAlerts = false;
+            //mWorkBook = oXL.Workbooks.Open(ExcelFilePath, 0, false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows, "", true, false, 0, true, false, false);
+            ////Get all the sheets in the workbook
+            //mWorkSheets = mWorkBook.Worksheets;
+            ////Get the allready exists sheet
+            //mWSheet1 = (Microsoft.Office.Interop.Excel.Worksheet)mWorkSheets.get_Item("Extracted");
+            //Microsoft.Office.Interop.Excel.Range range = mWSheet1.UsedRange;
+            //int colCount = range.Columns.Count;
+            //int rowCount = range.Rows.Count;
+            //for (int index = 1; index < rowCount; index++)
+            //{
+            //    mWSheet1.Cells[rowCount + index, 1] = rowCount + index;
+            //    mWSheet1.Cells[rowCount + index, 2] = "New Item" + index;
+            //}
+            //mWorkBook.SaveAs(ExcelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
+            //    Missing.Value, Missing.Value, Missing.Value, Missing.Value, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive,
+            //    Missing.Value, Missing.Value, Missing.Value,
+            //    Missing.Value, Missing.Value);
+            //mWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+            //mWSheet1 = null;
+            //mWorkBook = null;
+            //oXL.Quit();
+            //GC.WaitForPendingFinalizers();
+            //GC.Collect();
+            //GC.WaitForPendingFinalizers();
+            //GC.Collect();
+
+
+
+
+            string filePath = @"D:\Sachith\PstTest\TestUsers.xlsx";
+
+            // Saves the file via a FileInfo
+            var file = new FileInfo(filePath);
+
+            // Creates the package and make sure you wrap it in a using statement
+            using (var package = new ExcelPackage(file))
+            {
+                // Adds a new worksheet to the empty workbook
+                //OfficeOpenXml.ExcelWorksheet worksheet = package.Workbook.Worksheets["Extracted"];
+                OfficeOpenXml.Core.ExcelPackage.ExcelWorksheet worksheet = package.Workbook.Worksheets["Sheet1"];
+
+
+                // Starts to get data from database
+                for (int row = 1; row < 10; row++)
+                {
+                    // Writes data from sql database to excel's columns
+                    for (int col = 1; col < 10; col++)
+                    {
+                        worksheet.Cell(row, col).Value = Convert.ToString(row * col);
+                    }// Ends writing data from sql database to excel's columns
+
+                }// Ends getting data from database
+
+
+                // Saves new workbook and we are done!
+                package.Save();
+            }
+
         }
 
     }
