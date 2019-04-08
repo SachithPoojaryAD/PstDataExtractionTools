@@ -749,10 +749,10 @@ namespace PstDataExtractionTools
 
         private void GetMismatchCount()
         {
-            //path of log file
-            //string filePath = @"C:\Users\s.poojary\Desktop\SavingLogPC15 first part.txt";
-            //path of destination text file
-            //string destinationPath = @"C:\Users\s.poojary\Desktop\LogPC15FirstPart.txt";
+            ////path of log file
+            //string filePath = @"C:\Users\s.poojary\Desktop\SavingLogPC20.txt";
+            ////path of destination text file
+            //string destinationPath = @"C:\Users\s.poojary\Desktop\FolderToSearchPC20.txt";
 
 
             //path of log file
@@ -804,8 +804,10 @@ namespace PstDataExtractionTools
                         {
                             //format the string to be printed in the txt file
                             var strFolderName = lines[i - 1].Substring(lines[i - 1].LastIndexOf("\\") + 1);
-                            var strFolderNameCount = string.Format("{0}/{1}", strFolderName, count[0]);
+                            var strFolderNameCount = string.Format("{0}:{1}", strFolderName, count[0]);
                             sw.WriteLine(strFolderNameCount);
+
+                            Console.WriteLine(strFolderNameCount);
                         }
                     }
                 }
