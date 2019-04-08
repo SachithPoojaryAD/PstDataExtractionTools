@@ -622,12 +622,21 @@ namespace PstDataExtractionTools
 
         private void RenameInternalPSTFiles()
         {
+            string currentActivFolder;
             string FolderPath;
             try
             {
                 Console.WriteLine("\nEnter path of folder");
                 FolderPath = Console.ReadLine();
                 InitialLog.AppendLine("\nFolder path: " + FolderPath);
+                if (string.IsNullOrEmpty(FolderPath))
+                {
+                    throw new InvalidFilePathException("Please enter valid folder path\n");
+                }
+
+                Console.WriteLine("\nEnter current Aktiv Path(eg. Aktiv1, Aktiv2...)");
+                currentActivFolder = Console.ReadLine();
+                InitialLog.AppendLine("\nAktiv path: " + currentActivFolder);
                 if (string.IsNullOrEmpty(FolderPath))
                 {
                     throw new InvalidFilePathException("Please enter valid folder path\n");
@@ -648,34 +657,58 @@ namespace PstDataExtractionTools
                 //proceed only if folder name is not '_ignore'
                 if (!folder.Contains("_ignore"))
                 {
+
+                    //get the frolder name from the folder directory path
+                    var strFolderName = folder.Substring(folder.LastIndexOf("\\") + 1).Replace(",", " ");
+
+                    /*uncomment if you want to remove count from file name*/
+                    //if dash(-) exists in folder name, then remove it and its proceding characters
+                    //if (strFolderName.Contains("-") && int.TryParse(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1), out int n))
+                    //{
+                    //    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
+                    //}
+
+                    /*uncomment if you want to remove 'extern' from file name*/
+                    //if folder name contains 'extern', then remove it and its preceding string
+                    //if (strFolderName.Contains("-") && "extern".Contains(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1).ToLower().Trim()))
+                    //{
+                    //    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
+                    //}
+
+                    strFolderName += "-" + currentActivFolder;
+
+                    int folderCounter = 0;
                     DirectoryInfo folderDirectory = new DirectoryInfo(folder);
                     //check if folder contains pst files
                     foreach (var file in folderDirectory.GetFiles().OrderBy(f => f.Name))
                     {
                         if (file.Name.EndsWith(".pst"))
                         {
-                            //if pst file is present, increase the pst counter
-                            bool isFileNameInt = int.TryParse(file.Name.Substring(0, file.Name.LastIndexOf(".")), out int s);
-                            if (isFileNameInt)
+                            /*uncomment only if you want to rename numeric pst files(eg. 001.pst)*/
+                            //check if pst file name is numeric
+                            //bool isFileNameInt = int.TryParse(file.Name.Substring(0, file.Name.LastIndexOf(".")), out int s);
+                            //if (isFileNameInt)
+                            //{
+                            try
                             {
-                                try
-                                {
-                                    var newFileName = file.DirectoryName + "\\" + file.DirectoryName.Substring(file.DirectoryName.LastIndexOf("\\") + 1) + ".pst";
-                                    Directory.Move(file.FullName, newFileName);
-                                    Console.WriteLine("Renamed File: " + newFileName);
-                                    AddLogs(LogFilePath + "\\", "Renamed File: " + newFileName);
-                                }
-                                catch (IOException ex)
-                                {
-                                    Console.WriteLine(string.Format("Error: {0} folder is in use by other process", folder));
-                                    AddLogs(LogFilePath + "\\", "Error: " + file.FullName + " folder is in use by other process. " + ex.Message + " Stacktrace: " + ex.StackTrace);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine("Error for file: " + file.FullName + " Please check logs at " + LogFilePath);
-                                    AddLogs(LogFilePath + "\\", "file:- " + file.FullName + " " + ex.Message + " stacktrace:- " + ex.StackTrace);
-                                }
+                                //var newFileName = file.DirectoryName + "\\" + file.DirectoryName.Substring(file.DirectoryName.LastIndexOf("\\") + 1) + ".pst";
+                                var newFileName = file.DirectoryName + "\\" + strFolderName + (folderCounter == 0 ? string.Empty : folderCounter.ToString()) + ".pst";
+                                folderCounter++;
+                                Directory.Move(file.FullName, newFileName);
+                                Console.WriteLine("Renamed File: " + file.FullName + " to " + newFileName);
+                                AddLogs(LogFilePath + "\\", "Renamed File: " + file.FullName + " to " + newFileName);
                             }
+                            catch (IOException ex)
+                            {
+                                Console.WriteLine(string.Format("Error: {0} folder is in use by other process", folder));
+                                AddLogs(LogFilePath + "\\", "Error: " + file.FullName + " folder is in use by other process. " + ex.Message + " Stacktrace: " + ex.StackTrace);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("Error for file: " + file.FullName + " Please check logs at " + LogFilePath);
+                                AddLogs(LogFilePath + "\\", "file:- " + file.FullName + " " + ex.Message + " stacktrace:- " + ex.StackTrace);
+                            }
+                            //}
                         }
                     }
                 }
