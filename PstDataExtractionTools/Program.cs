@@ -1,13 +1,9 @@
 using ExcelDataReader;
-using OfficeOpenXml.Core.ExcelPackage;
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using Excel = Microsoft.Office.Interop.Excel;
 
 namespace PstDataExtractionTools
 {
@@ -40,7 +36,13 @@ namespace PstDataExtractionTools
             Console.WriteLine("-----------------------------------Start----------------------------------------");
             prog.InitialLog.AppendLine("\n-----------------------------------Start of Log----------------------------------------");
 
-            Console.WriteLine("Please select option \n1) Read Excel File and Move & Rename folders \n2) Remove .pst from folder name \n3) Remove unwanted folders from destination path \n4) Rename PST Files\n5) Get Mismatch count from log file");
+            Console.WriteLine("Please select option \n" +
+                "1) Read Excel File and Move & Rename folders \n" +
+                "2) Remove .pst from folder name \n" +
+                "3) Remove unwanted folders from destination path \n" +
+                "4) Rename PST Files\n" +
+                "5) Get Mismatch count from log file\n" +
+                "6) Exit");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -73,6 +75,9 @@ namespace PstDataExtractionTools
                     Console.WriteLine("Get Mismatch count from log file");
                     //prog.InitialLog.AppendLine("\nGet Mismatch count from log file");
                     prog.GetMismatchCount();
+                    break;
+                case 6:
+                    Environment.Exit(0);
                     break;
                 default:
                     Console.WriteLine("Please select valid option");
