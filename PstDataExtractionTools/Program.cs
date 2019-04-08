@@ -1,9 +1,9 @@
 using ExcelDataReader;
-using OfficeOpenXml.Core.ExcelPackage;
 using System;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace PstDataExtractionTools
@@ -31,6 +31,7 @@ namespace PstDataExtractionTools
         static void Main(string[] args)
         {
             Program prog = new Program();
+            prog.WriteToExcel(@"D:\Sachith\TestUsers.xlsx");
             prog.InitialLog = new StringBuilder();
 
             DateTime startTime = DateTime.Now;
@@ -740,79 +741,104 @@ namespace PstDataExtractionTools
         }
 
         /*Incomplete*/
-        private void WriteToExcel()
+        private void WriteToExcel(string excelFilePath)
         {
             //Console.WriteLine("\nEnter path of excel file");
             //ExcelFilePath = Console.ReadLine();
             //InitialLog.AppendLine("\nExcel file path: " + ExcelFilePath);
 
-            ExcelFilePath = @"D:\Sachith\PstTest\TestUsers.xlsx";
+            //ExcelFilePath = @"D:\Sachith\TestUsers.xlsx";
 
-            //Microsoft.Office.Interop.Excel.Workbook mWorkBook;
-            //Microsoft.Office.Interop.Excel.Sheets mWorkSheets;
-            //Microsoft.Office.Interop.Excel.Worksheet mWSheet1;
-            //Microsoft.Office.Interop.Excel.Application oXL;
+            Microsoft.Office.Interop.Excel.Application xlApp;
+            Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
+            Microsoft.Office.Interop.Excel.Worksheet xlWorkSheet;
+            Microsoft.Office.Interop.Excel.Sheets xlBigSheet;
+            Microsoft.Office.Interop.Excel.Range xlSheetRange;
 
-            //oXL = new Microsoft.Office.Interop.Excel.Application();
-            //oXL.Visible = true;
-            //oXL.DisplayAlerts = false;
-            //mWorkBook = oXL.Workbooks.Open(ExcelFilePath, 0, false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows, "", true, false, 0, true, false, false);
-            ////Get all the sheets in the workbook
-            //mWorkSheets = mWorkBook.Worksheets;
-            ////Get the allready exists sheet
-            //mWSheet1 = (Microsoft.Office.Interop.Excel.Worksheet)mWorkSheets.get_Item("Extracted");
-            //Microsoft.Office.Interop.Excel.Range range = mWSheet1.UsedRange;
-            //int colCount = range.Columns.Count;
-            //int rowCount = range.Rows.Count;
-            //for (int index = 1; index < rowCount; index++)
-            //{
-            //    mWSheet1.Cells[rowCount + index, 1] = rowCount + index;
-            //    mWSheet1.Cells[rowCount + index, 2] = "New Item" + index;
-            //}
-            //mWorkBook.SaveAs(ExcelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
-            //    Missing.Value, Missing.Value, Missing.Value, Missing.Value, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive,
-            //    Missing.Value, Missing.Value, Missing.Value,
-            //    Missing.Value, Missing.Value);
-            //mWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
-            //mWSheet1 = null;
-            //mWorkBook = null;
-            //oXL.Quit();
-            //GC.WaitForPendingFinalizers();
-            //GC.Collect();
-            //GC.WaitForPendingFinalizers();
-            //GC.Collect();
+            xlApp = new Microsoft.Office.Interop.Excel.Application();
+            //sets whether the excel file will be open during this process
+            xlApp.Visible = false;
+            //open the excel file
+            xlWorkBook = xlApp.Workbooks.Open(excelFilePath, 0,
+                        false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
+                         "", true, false, 0, true, false, false);
 
+            //get all the worksheets in the excel  file
+            xlBigSheet = xlWorkBook.Worksheets;
+            string x = "Extracted";
+            //get the specified worksheet
+            xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(x);
 
+            xlSheetRange = xlWorkSheet.UsedRange;
 
-
-            string filePath = @"D:\Sachith\PstTest\TestUsers.xlsx";
-
-            // Saves the file via a FileInfo
-            var file = new FileInfo(filePath);
-
-            // Creates the package and make sure you wrap it in a using statement
-            using (var package = new ExcelPackage(file))
+            int colCount = xlSheetRange.Columns.Count;
+            int rowCount = xlSheetRange.Rows.Count;
+            //iterate the rows
+            for (int index = 0; index <= rowCount; index++)
             {
-                // Adds a new worksheet to the empty workbook
-                //OfficeOpenXml.ExcelWorksheet worksheet = package.Workbook.Worksheets["Extracted"];
-                OfficeOpenXml.Core.ExcelPackage.ExcelWorksheet worksheet = package.Workbook.Worksheets["Sheet1"];
-
-
-                // Starts to get data from database
-                for (int row = 1; row < 10; row++)
+                Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[index, 2];
+                if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User name"))
                 {
-                    // Writes data from sql database to excel's columns
-                    for (int col = 1; col < 10; col++)
+                    Microsoft.Office.Interop.Excel.Range cellAktiv1 = xlSheetRange.Cells[index, 3];
+                    Microsoft.Office.Interop.Excel.Range cellAktiv2 = xlSheetRange.Cells[index, 4];
+
+                    if (cellAktiv1.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv1.Value2.ToString()) && cellAktiv1.Value2.ToString().Trim().Equals("Cross-checking"))
                     {
-                        worksheet.Cell(row, col).Value = Convert.ToString(row * col);
-                    }// Ends writing data from sql database to excel's columns
 
-                }// Ends getting data from database
-
-
-                // Saves new workbook and we are done!
-                package.Save();
+                        xlSheetRange.Cells[index, 3] = "Done";
+                    }
+                    if (cellAktiv2.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv2.Value2.ToString()) && cellAktiv2.Value2.ToString().Trim().Equals("Cross-checking"))
+                    {
+                        xlSheetRange.Cells[index, 4] = "Done";
+                    }
+                }
             }
+
+            xlWorkBook.Save();
+
+            //this line causes the excel file to get corrupted
+            //xlWorkBook.SaveAs(excelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
+            //        Missing.Value, Missing.Value, Missing.Value, Missing.Value, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive,
+            //        Missing.Value, Missing.Value, Missing.Value,
+            //        Missing.Value, Missing.Value);
+
+            //cleanup
+            xlWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+            xlWorkBook = null;
+            xlApp.Quit();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            //string filePath = @"D:\Sachith\PstTest\TestUsers.xlsx";
+
+            //// Saves the file via a FileInfo
+            //var file = new FileInfo(filePath);
+
+            //// Creates the package and make sure you wrap it in a using statement
+            //using (var package = new ExcelPackage(file))
+            //{
+            //    // Adds a new worksheet to the empty workbook
+            //    //OfficeOpenXml.ExcelWorksheet worksheet = package.Workbook.Worksheets["Extracted"];
+            //    OfficeOpenXml.Core.ExcelPackage.ExcelWorksheet worksheet = package.Workbook.Worksheets["Sheet1"];
+
+
+            //    // Starts to get data from database
+            //    for (int row = 1; row < 10; row++)
+            //    {
+            //        // Writes data from sql database to excel's columns
+            //        for (int col = 1; col < 10; col++)
+            //        {
+            //            worksheet.Cell(row, col).Value = Convert.ToString(row * col);
+            //        }// Ends writing data from sql database to excel's columns
+
+            //    }// Ends getting data from database
+
+
+            //    // Saves new workbook and we are done!
+            //    package.Save();
+            //}
 
         }
 
