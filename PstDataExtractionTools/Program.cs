@@ -31,7 +31,7 @@ namespace PstDataExtractionTools
         static void Main(string[] args)
         {
             Program prog = new Program();
-            prog.WriteToExcel(@"D:\Sachith\TestUsers.xlsx");
+            //prog.WriteToExcel(@"D:\Sachith\TestUsers.xlsx");
             prog.InitialLog = new StringBuilder();
 
             DateTime startTime = DateTime.Now;
@@ -120,48 +120,117 @@ namespace PstDataExtractionTools
                 LogFilePath = FinalCopyFolderPath;
                 AddLogs(LogFilePath + "\\", InitialLog.ToString());
 
-                using (var excelStream = File.Open(ExcelFilePath, FileMode.Open, FileAccess.Read))
+                //using (var excelStream = File.Open(ExcelFilePath, FileMode.Open, FileAccess.Read))
+                //{
+                //    using (var excelReader = ExcelReaderFactory.CreateReader(excelStream))
+                //    {
+                //        do
+                //        {
+                //            //read each row of the excel file
+                //            while (excelReader.Read())
+                //            {
+                //                //check if the user name is not null and extracted status is not 'done' or 'no data found'
+                //                //if (excelReader.GetString(2) == null || excelReader.GetString(3) == null) return;
+                //                //if ( excelReader.GetString(3).Equals("Done") || excelReader.GetString(3).Equals("No Data Found"))
+                //                //    return;
+                //                //check if the user name is not null and extracted status is not 'done' or 'no data found'
+                //                //if (!string.IsNullOrEmpty(excelReader.GetString(3)) && excelReader.GetString(3).ToLower().Equals("cross-checking"))
+                //                //if (excelReader.GetString(3) == null) return;
+                //                //if (!string.IsNullOrEmpty(excelReader.GetString(3)) && excelReader.GetString(3).Equals("Cross-checking"))
+                //                //{
+
+                //                //}
+
+                //                //check if username is not null
+                //                //if (!string.IsNullOrEmpty(excelReader.GetString(3)) && excelReader.GetString(3).ToLower().Equals("cross-checking"))
+                //                //if (!string.IsNullOrEmpty(excelReader.GetString(2)) && !(excelReader.GetString(3).ToLower().Equals("Done") || excelReader.GetString(3).ToLower().Equals("No Data Found")))
+                //                if (!string.IsNullOrWhiteSpace(excelReader.GetString(2)))
+                //                {
+                //                    //Rename and move files and folder
+                //                    GetAndMoveFoldersAndFiles(Aktiv1FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(" ", string.Empty));
+                //                    GetAndMoveFoldersAndFiles(Aktiv2FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(" ", string.Empty));
+
+                //                    //Search and Move already renamed folders
+                //                    //MoveFolder("Aktiv1", Aktiv1FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(",", string.Empty));
+                //                    //MoveFolder("Aktiv2", Aktiv2FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(",", string.Empty));
+
+                //                    //Check if renamed folders exists for a user
+                //                    //CheckFolders("Aktiv1", Aktiv1FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(",", string.Empty));
+                //                    //CheckFolders("Aktiv2", Aktiv2FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(",", string.Empty));
+                //                }
+                //            }
+                //        } while (excelReader.NextResult());
+                //    }
+                //}
+
+                /*testing*/
+
+                //ExcelFilePath = @"D:\Sachith\TestUsers.xlsx";
+
+                Microsoft.Office.Interop.Excel.Application xlApp;
+                Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
+                Microsoft.Office.Interop.Excel.Worksheet xlWorkSheet;
+                Microsoft.Office.Interop.Excel.Sheets xlBigSheet;
+                Microsoft.Office.Interop.Excel.Range xlSheetRange;
+
+                xlApp = new Microsoft.Office.Interop.Excel.Application();
+                //sets whether the excel file will be open during this process
+                xlApp.Visible = false;
+                //open the excel file
+                xlWorkBook = xlApp.Workbooks.Open(ExcelFilePath, 0,
+                            false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
+                             "", true, false, 0, true, false, false);
+
+                //get all the worksheets in the excel  file
+                xlBigSheet = xlWorkBook.Worksheets;
+
+                Console.WriteLine("\nEnter excel sheet name");
+                var xlSheetName = Console.ReadLine();
+
+                //string x = "Extracted";
+                //get the specified worksheet
+                xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(xlSheetName);
+
+                xlSheetRange = xlWorkSheet.UsedRange;
+
+                int colCount = xlSheetRange.Columns.Count;
+                int rowCount = xlSheetRange.Rows.Count;
+                //iterate the rows
+                for (int index = 0; index <= rowCount; index++)
                 {
-                    using (var excelReader = ExcelReaderFactory.CreateReader(excelStream))
+                    Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[index, 2];
+                    if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User name"))
                     {
-                        do
-                        {
-                            //read each row of the excel file
-                            while (excelReader.Read())
-                            {
-                                //check if the user name is not null and extracted status is not 'done' or 'no data found'
-                                //if (excelReader.GetString(2) == null || excelReader.GetString(3) == null) return;
-                                //if ( excelReader.GetString(3).Equals("Done") || excelReader.GetString(3).Equals("No Data Found"))
-                                //    return;
-                                //check if the user name is not null and extracted status is not 'done' or 'no data found'
-                                //if (!string.IsNullOrEmpty(excelReader.GetString(3)) && excelReader.GetString(3).ToLower().Equals("cross-checking"))
-                                //if (excelReader.GetString(3) == null) return;
-                                //if (!string.IsNullOrEmpty(excelReader.GetString(3)) && excelReader.GetString(3).Equals("Cross-checking"))
-                                //{
+                        //Rename and move files and folder
+                        GetAndMoveFoldersAndFiles(Aktiv1FolderPath.Replace(" ", string.Empty), cell.Value2.ToString().Replace(" ", string.Empty));
+                        GetAndMoveFoldersAndFiles(Aktiv2FolderPath.Replace(" ", string.Empty), cell.Value2.ToString().Replace(" ", string.Empty));
 
-                                //}
+                        //Search and Move already renamed folders
+                        //MoveFolder("Aktiv1", Aktiv1FolderPath.Replace(" ", string.Empty), cell.Value2.ToString().Replace(",", string.Empty));
+                        //MoveFolder("Aktiv2", Aktiv2FolderPath.Replace(" ", string.Empty), cell.Value2.ToString().Replace(",", string.Empty));
 
-                                //check if username is not null
-                                //if (!string.IsNullOrEmpty(excelReader.GetString(3)) && excelReader.GetString(3).ToLower().Equals("cross-checking"))
-                                //if (!string.IsNullOrEmpty(excelReader.GetString(2)) && !(excelReader.GetString(3).ToLower().Equals("Done") || excelReader.GetString(3).ToLower().Equals("No Data Found")))
-                                if (!string.IsNullOrWhiteSpace(excelReader.GetString(2)))
-                                {
-                                    //Rename and move files and folder
-                                    GetAndMoveFoldersAndFiles(Aktiv1FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(" ", string.Empty));
-                                    GetAndMoveFoldersAndFiles(Aktiv2FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(" ", string.Empty));
-
-                                    //Search and Move already renamed folders
-                                    //MoveFolder("Aktiv1", Aktiv1FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(",", string.Empty));
-                                    //MoveFolder("Aktiv2", Aktiv2FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(",", string.Empty));
-
-                                    //Check if renamed folders exists for a user
-                                    //CheckFolders("Aktiv1", Aktiv1FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(",", string.Empty));
-                                    //CheckFolders("Aktiv2", Aktiv2FolderPath.Replace(" ", string.Empty), excelReader.GetString(2).Replace(",", string.Empty));
-                                }
-                            }
-                        } while (excelReader.NextResult());
+                        //Check if renamed folders exists for a user
+                        //CheckFolders("Aktiv1", Aktiv1FolderPath.Replace(" ", string.Empty), cell.Value2.ToString().Replace(",", string.Empty));
+                        //CheckFolders("Aktiv2", Aktiv2FolderPath.Replace(" ", string.Empty), cell.Value2.ToString().Replace(",", string.Empty));
                     }
                 }
+
+                xlWorkBook.Save();
+
+                //this line causes the excel file to get corrupted
+                //xlWorkBook.SaveAs(excelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
+                //        Missing.Value, Missing.Value, Missing.Value, Missing.Value, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive,
+                //        Missing.Value, Missing.Value, Missing.Value,
+                //        Missing.Value, Missing.Value);
+
+                //cleanup
+                xlWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+                xlWorkBook = null;
+                xlApp.Quit();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
             }
             catch (IOException)
             {
@@ -748,6 +817,7 @@ namespace PstDataExtractionTools
             //InitialLog.AppendLine("\nExcel file path: " + ExcelFilePath);
 
             //ExcelFilePath = @"D:\Sachith\TestUsers.xlsx";
+            //string excelFilePath = System.Web.HttpUtility.HtmlEncode(@"https://avendatagmbh-my.sharepoint.com/:x:/r/personal/s_poojary_avendata_com/_layouts/15/Doc.aspx?sourcedoc=%7BBB1C2FB1-3ABC-4856-B53E-EE150E98F64A%7D&file=Book%201.xlsx&action=editnew&mobileredirect=true&wdNewAndOpenCt=1554865062581&wdPreviousSession=8cb444c0-ac3b-4ff6-a931-b466fe30dc56&wdOrigin=ohpAppStartPages");
 
             Microsoft.Office.Interop.Excel.Application xlApp;
             Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
@@ -769,32 +839,43 @@ namespace PstDataExtractionTools
             //get the specified worksheet
             xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(x);
 
-            xlSheetRange = xlWorkSheet.UsedRange;
+            //xlSheetRange = xlWorkSheet.UsedRange;
 
-            int colCount = xlSheetRange.Columns.Count;
-            int rowCount = xlSheetRange.Rows.Count;
-            //iterate the rows
-            for (int index = 0; index <= rowCount; index++)
+            //int colCount = xlSheetRange.Columns.Count;
+            //int rowCount = xlSheetRange.Rows.Count;
+            ////iterate the rows
+            //for (int index = 0; index <= rowCount; index++)
+            //{
+            //    Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[index, 2];
+            //    if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User name"))
+            //    {
+            //        Microsoft.Office.Interop.Excel.Range cellAktiv1 = xlSheetRange.Cells[index, 3];
+            //        Microsoft.Office.Interop.Excel.Range cellAktiv2 = xlSheetRange.Cells[index, 4];
+
+            //        if (cellAktiv1.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv1.Value2.ToString()) && cellAktiv1.Value2.ToString().Trim().Equals("Cross-checking"))
+            //        {
+
+            //            xlSheetRange.Cells[index, 3] = "Done";
+            //        }
+            //        if (cellAktiv2.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv2.Value2.ToString()) && cellAktiv2.Value2.ToString().Trim().Equals("Cross-checking"))
+            //        {
+            //            xlSheetRange.Cells[index, 4] = "Done";
+            //        }
+            //    }
+            //}
+
+            //xlWorkBook.Save();
+
+            xlSheetRange = xlWorkSheet.get_Range("A1", "A" + xlWorkSheet.Rows.Count);
+            var values = (System.Array)xlSheetRange.Cells.Value2;
+
+            foreach(var n in values)
             {
-                Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[index, 2];
-                if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User name"))
+                if (n != null && !string.IsNullOrWhiteSpace(n.ToString()))
                 {
-                    Microsoft.Office.Interop.Excel.Range cellAktiv1 = xlSheetRange.Cells[index, 3];
-                    Microsoft.Office.Interop.Excel.Range cellAktiv2 = xlSheetRange.Cells[index, 4];
-
-                    if (cellAktiv1.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv1.Value2.ToString()) && cellAktiv1.Value2.ToString().Trim().Equals("Cross-checking"))
-                    {
-
-                        xlSheetRange.Cells[index, 3] = "Done";
-                    }
-                    if (cellAktiv2.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv2.Value2.ToString()) && cellAktiv2.Value2.ToString().Trim().Equals("Cross-checking"))
-                    {
-                        xlSheetRange.Cells[index, 4] = "Done";
-                    }
+                    Console.WriteLine(n.ToString());
                 }
             }
-
-            xlWorkBook.Save();
 
             //this line causes the excel file to get corrupted
             //xlWorkBook.SaveAs(excelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
