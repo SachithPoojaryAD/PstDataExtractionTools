@@ -42,7 +42,8 @@ namespace PstDataExtractionTools
                 "3) Remove unwanted folders from destination path \n" +
                 "4) Rename PST Files\n" +
                 "5) Get Mismatch count from log file\n" +
-                "6) Exit");
+                "6) Search Directory for backup folder\n" +
+                "7) Exit");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -77,6 +78,11 @@ namespace PstDataExtractionTools
                     prog.GetMismatchCount();
                     break;
                 case 6:
+                    Console.WriteLine("Search Directory for backup folder");
+                    prog.InitialLog.AppendLine("\nSearch Directory for backup folder");
+                    prog.DirectorySearch();
+                    break;
+                case 7:
                     Environment.Exit(0);
                     break;
                 default:
@@ -838,7 +844,7 @@ namespace PstDataExtractionTools
                         var strCount = line.Split(':');
                         var count = strCount[1].Trim().Split('/');
                         //check if count is mismatched and that it is greater than 0
-                        if((Convert.ToInt32(count[0]) != Convert.ToInt32(count[1])) && Convert.ToInt32(count[0]) > 0)
+                        if ((Convert.ToInt32(count[0]) != Convert.ToInt32(count[1])) && Convert.ToInt32(count[0]) > 0)
                         {
                             //format the string to be printed in the txt file
                             var strFolderName = lines[i - 1].Substring(lines[i - 1].LastIndexOf("\\") + 1);
@@ -850,6 +856,87 @@ namespace PstDataExtractionTools
                     }
                 }
                 sw.Close();
+            }
+        }
+
+        private void DirectorySearch()
+        {
+            //path of folder to search
+            string searchDirectory;
+            //path of log file
+            string filePath;
+            //path of destination text file
+            //string destinationPath;
+
+            try
+            {
+                Console.WriteLine("\nEnter path of folder to search");
+                searchDirectory = Console.ReadLine();
+                LogFilePath = searchDirectory;
+                AddLogs(LogFilePath + "\\", "\nFolder to search: " + searchDirectory);
+                if (string.IsNullOrEmpty(searchDirectory))
+                {
+                    throw new InvalidFilePathException("Please enter valid folder path\n");
+                }
+
+                Console.WriteLine("\nEnter path of text file");
+                filePath = Console.ReadLine();
+                AddLogs(LogFilePath + "\\", "\nText file path: " + filePath);
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    throw new InvalidFilePathException("Please enter valid file path\n");
+                }
+
+                //Console.WriteLine("\nEnter path of destination log file");
+                //destinationPath = Console.ReadLine();
+                //AddLogs(LogFilePath + "\\", "\nDestination log file path: " + destinationPath);
+                //if (string.IsNullOrEmpty(destinationPath))
+                //{
+                //    throw new InvalidFilePathException("Please enter valid file path\n");
+                //}
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+                return;
+            }
+
+            SearchFolders(searchDirectory, filePath);
+        }
+
+        private void SearchFolders(string searchDir, string filePath)
+        {
+            try
+            {
+                foreach (var directory in Directory.GetDirectories(searchDir))
+                {
+                    //if the folder does not contain extracted data, recursively search that folder
+                    if (!directory.Contains("Oberste Ebene der Outlook-Datendatei"))
+                    {
+                        //StreamWriter sw = new StreamWriter(destinationPath, true, Encoding.UTF8);
+                        var lines = File.ReadAllLines(filePath);
+                        for (var i = 0; i < lines.Length; i += 1)
+                        {
+                            var line = lines[i];
+                            line = line.Replace(",", string.Empty);
+                            //check if the current line contains the user name
+                            if (directory.Trim().ToLower().Contains(line.Trim().ToLower()))
+                            {
+                                //sw.WriteLine(directory);
+                                AddLogs(LogFilePath + "\\", "\nUser Found: " + line + " - " + directory);
+                                Console.WriteLine(directory);
+                            }
+                        }
+
+                        //search the current directory and check if username matches
+                        SearchFolders(directory, filePath);
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
         }
 
