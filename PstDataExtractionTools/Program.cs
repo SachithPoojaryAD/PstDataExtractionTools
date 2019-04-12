@@ -1,9 +1,9 @@
-using ExcelDataReader;
 using System;
 using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Reflection;
 
 namespace PstDataExtractionTools
 {
@@ -181,7 +181,7 @@ namespace PstDataExtractionTools
                 //            }
                 //        } while (excelReader.NextResult());
                 //    }
-                //} 
+                //}
                 #endregion
 
                 /*testing*/
@@ -252,7 +252,7 @@ namespace PstDataExtractionTools
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
-                GC.Collect(); 
+                GC.Collect();
                 #endregion
             }
             catch (IOException)
@@ -598,7 +598,7 @@ namespace PstDataExtractionTools
             foreach (var folder in Directory.GetDirectories(FolderPath))
             {
                 //make sure that the current files being extracted doesn't get renamed
-                if (!(folder.Contains("Eilers Andre_Aktiv1.pst") || folder.Contains("Eilers Andre_Aktiv2.pst") || folder.Contains("Eisenschmidt Marco_Aktiv1.pst") || folder.Contains("Eisenschmidt Marco_Aktiv2.pst")))
+                //if (!(folder.Contains("Eilers Andre_Aktiv1.pst") || folder.Contains("Eilers Andre_Aktiv2.pst") || folder.Contains("Eisenschmidt Marco_Aktiv1.pst") || folder.Contains("Eisenschmidt Marco_Aktiv2.pst")))
                 {
                     //check if folder name ends with '.pst'
                     if (folder.EndsWith(".pst"))
@@ -865,120 +865,6 @@ namespace PstDataExtractionTools
             }
         }
 
-        /*Incomplete*/
-        private void WriteToExcel(string excelFilePath)
-        {
-            //Console.WriteLine("\nEnter path of excel file");
-            //ExcelFilePath = Console.ReadLine();
-            //InitialLog.AppendLine("\nExcel file path: " + ExcelFilePath);
-
-            //ExcelFilePath = @"D:\Sachith\TestUsers.xlsx";
-            //string excelFilePath = System.Web.HttpUtility.HtmlEncode(@"https://avendatagmbh-my.sharepoint.com/:x:/r/personal/s_poojary_avendata_com/_layouts/15/Doc.aspx?sourcedoc=%7BBB1C2FB1-3ABC-4856-B53E-EE150E98F64A%7D&file=Book%201.xlsx&action=editnew&mobileredirect=true&wdNewAndOpenCt=1554865062581&wdPreviousSession=8cb444c0-ac3b-4ff6-a931-b466fe30dc56&wdOrigin=ohpAppStartPages");
-
-            Microsoft.Office.Interop.Excel.Application xlApp;
-            Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
-            Microsoft.Office.Interop.Excel.Worksheet xlWorkSheet;
-            Microsoft.Office.Interop.Excel.Sheets xlBigSheet;
-            Microsoft.Office.Interop.Excel.Range xlSheetRange;
-
-            xlApp = new Microsoft.Office.Interop.Excel.Application();
-            //sets whether the excel file will be open during this process
-            xlApp.Visible = false;
-            //open the excel file
-            xlWorkBook = xlApp.Workbooks.Open(excelFilePath, 0,
-                        false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
-                         "", true, false, 0, true, false, false);
-
-            //get all the worksheets in the excel  file
-            xlBigSheet = xlWorkBook.Worksheets;
-            string x = "Extracted";
-            //get the specified worksheet
-            xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(x);
-
-            //xlSheetRange = xlWorkSheet.UsedRange;
-
-            //int colCount = xlSheetRange.Columns.Count;
-            //int rowCount = xlSheetRange.Rows.Count;
-            ////iterate the rows
-            //for (int index = 0; index <= rowCount; index++)
-            //{
-            //    Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[index, 2];
-            //    if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User name"))
-            //    {
-            //        Microsoft.Office.Interop.Excel.Range cellAktiv1 = xlSheetRange.Cells[index, 3];
-            //        Microsoft.Office.Interop.Excel.Range cellAktiv2 = xlSheetRange.Cells[index, 4];
-
-            //        if (cellAktiv1.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv1.Value2.ToString()) && cellAktiv1.Value2.ToString().Trim().Equals("Cross-checking"))
-            //        {
-
-            //            xlSheetRange.Cells[index, 3] = "Done";
-            //        }
-            //        if (cellAktiv2.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv2.Value2.ToString()) && cellAktiv2.Value2.ToString().Trim().Equals("Cross-checking"))
-            //        {
-            //            xlSheetRange.Cells[index, 4] = "Done";
-            //        }
-            //    }
-            //}
-
-            //xlWorkBook.Save();
-
-            xlSheetRange = xlWorkSheet.get_Range("A1", "A" + xlWorkSheet.Rows.Count);
-            var values = (System.Array)xlSheetRange.Cells.Value2;
-
-            foreach(var n in values)
-            {
-                if (n != null && !string.IsNullOrWhiteSpace(n.ToString()))
-                {
-                    Console.WriteLine(n.ToString());
-                }
-            }
-
-            //this line causes the excel file to get corrupted
-            //xlWorkBook.SaveAs(excelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
-            //        Missing.Value, Missing.Value, Missing.Value, Missing.Value, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive,
-            //        Missing.Value, Missing.Value, Missing.Value,
-            //        Missing.Value, Missing.Value);
-
-            //cleanup
-            xlWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
-            xlWorkBook = null;
-            xlApp.Quit();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-
-            //string filePath = @"D:\Sachith\PstTest\TestUsers.xlsx";
-
-            //// Saves the file via a FileInfo
-            //var file = new FileInfo(filePath);
-
-            //// Creates the package and make sure you wrap it in a using statement
-            //using (var package = new ExcelPackage(file))
-            //{
-            //    // Adds a new worksheet to the empty workbook
-            //    //OfficeOpenXml.ExcelWorksheet worksheet = package.Workbook.Worksheets["Extracted"];
-            //    OfficeOpenXml.Core.ExcelPackage.ExcelWorksheet worksheet = package.Workbook.Worksheets["Sheet1"];
-
-
-            //    // Starts to get data from database
-            //    for (int row = 1; row < 10; row++)
-            //    {
-            //        // Writes data from sql database to excel's columns
-            //        for (int col = 1; col < 10; col++)
-            //        {
-            //            worksheet.Cell(row, col).Value = Convert.ToString(row * col);
-            //        }// Ends writing data from sql database to excel's columns
-
-            //    }// Ends getting data from database
-
-
-            //    // Saves new workbook and we are done!
-            //    package.Save();
-            //}
-
-        }
-
         private void GetMismatchCount()
         {
             ////path of log file
@@ -1126,6 +1012,120 @@ namespace PstDataExtractionTools
             {
                 Console.WriteLine(ex.Message);
             }
+        }
+
+        /*Incomplete*/
+        private void WriteToExcel(string excelFilePath)
+        {
+            //Console.WriteLine("\nEnter path of excel file");
+            //ExcelFilePath = Console.ReadLine();
+            //InitialLog.AppendLine("\nExcel file path: " + ExcelFilePath);
+
+            //ExcelFilePath = @"D:\Sachith\TestUsers.xlsx";
+            //string excelFilePath = System.Web.HttpUtility.HtmlEncode(@"https://avendatagmbh-my.sharepoint.com/:x:/r/personal/s_poojary_avendata_com/_layouts/15/Doc.aspx?sourcedoc=%7BBB1C2FB1-3ABC-4856-B53E-EE150E98F64A%7D&file=Book%201.xlsx&action=editnew&mobileredirect=true&wdNewAndOpenCt=1554865062581&wdPreviousSession=8cb444c0-ac3b-4ff6-a931-b466fe30dc56&wdOrigin=ohpAppStartPages");
+
+            Microsoft.Office.Interop.Excel.Application xlApp;
+            Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
+            Microsoft.Office.Interop.Excel.Worksheet xlWorkSheet;
+            Microsoft.Office.Interop.Excel.Sheets xlBigSheet;
+            Microsoft.Office.Interop.Excel.Range xlSheetRange;
+
+            xlApp = new Microsoft.Office.Interop.Excel.Application();
+            //sets whether the excel file will be open during this process
+            xlApp.Visible = false;
+            //open the excel file
+            xlWorkBook = xlApp.Workbooks.Open(excelFilePath, 0,
+                        false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
+                         "", true, false, 0, true, false, false);
+
+            //get all the worksheets in the excel  file
+            xlBigSheet = xlWorkBook.Worksheets;
+            string x = "Extracted";
+            //get the specified worksheet
+            xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(x);
+
+            //xlSheetRange = xlWorkSheet.UsedRange;
+
+            //int colCount = xlSheetRange.Columns.Count;
+            //int rowCount = xlSheetRange.Rows.Count;
+            ////iterate the rows
+            //for (int index = 0; index <= rowCount; index++)
+            //{
+            //    Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[index, 2];
+            //    if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User name"))
+            //    {
+            //        Microsoft.Office.Interop.Excel.Range cellAktiv1 = xlSheetRange.Cells[index, 3];
+            //        Microsoft.Office.Interop.Excel.Range cellAktiv2 = xlSheetRange.Cells[index, 4];
+
+            //        if (cellAktiv1.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv1.Value2.ToString()) && cellAktiv1.Value2.ToString().Trim().Equals("Cross-checking"))
+            //        {
+
+            //            xlSheetRange.Cells[index, 3] = "Done";
+            //        }
+            //        if (cellAktiv2.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv2.Value2.ToString()) && cellAktiv2.Value2.ToString().Trim().Equals("Cross-checking"))
+            //        {
+            //            xlSheetRange.Cells[index, 4] = "Done";
+            //        }
+            //    }
+            //}
+
+            //xlWorkBook.Save();
+
+            xlSheetRange = xlWorkSheet.get_Range("A1", "A" + xlWorkSheet.Rows.Count);
+            var values = (System.Array)xlSheetRange.Cells.Value2;
+
+            foreach (var n in values)
+            {
+                if (n != null && !string.IsNullOrWhiteSpace(n.ToString()))
+                {
+                    Console.WriteLine(n.ToString());
+                }
+            }
+
+            //this line causes the excel file to get corrupted
+            //xlWorkBook.SaveAs(excelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
+            //        Missing.Value, Missing.Value, Missing.Value, Missing.Value, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive,
+            //        Missing.Value, Missing.Value, Missing.Value,
+            //        Missing.Value, Missing.Value);
+
+            //cleanup
+            xlWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+            xlWorkBook = null;
+            xlApp.Quit();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            //string filePath = @"D:\Sachith\PstTest\TestUsers.xlsx";
+
+            //// Saves the file via a FileInfo
+            //var file = new FileInfo(filePath);
+
+            //// Creates the package and make sure you wrap it in a using statement
+            //using (var package = new ExcelPackage(file))
+            //{
+            //    // Adds a new worksheet to the empty workbook
+            //    //OfficeOpenXml.ExcelWorksheet worksheet = package.Workbook.Worksheets["Extracted"];
+            //    OfficeOpenXml.Core.ExcelPackage.ExcelWorksheet worksheet = package.Workbook.Worksheets["Sheet1"];
+
+
+            //    // Starts to get data from database
+            //    for (int row = 1; row < 10; row++)
+            //    {
+            //        // Writes data from sql database to excel's columns
+            //        for (int col = 1; col < 10; col++)
+            //        {
+            //            worksheet.Cell(row, col).Value = Convert.ToString(row * col);
+            //        }// Ends writing data from sql database to excel's columns
+
+            //    }// Ends getting data from database
+
+
+            //    // Saves new workbook and we are done!
+            //    package.Save();
+            //}
+
         }
 
     }
