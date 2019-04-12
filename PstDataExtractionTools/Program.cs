@@ -120,6 +120,7 @@ namespace PstDataExtractionTools
                 LogFilePath = FinalCopyFolderPath;
                 AddLogs(LogFilePath + "\\", InitialLog.ToString());
 
+                #region ExcelDataReader method
                 //using (var excelStream = File.Open(ExcelFilePath, FileMode.Open, FileAccess.Read))
                 //{
                 //    using (var excelReader = ExcelReaderFactory.CreateReader(excelStream))
@@ -161,9 +162,11 @@ namespace PstDataExtractionTools
                 //            }
                 //        } while (excelReader.NextResult());
                 //    }
-                //}
+                //} 
+                #endregion
 
                 /*testing*/
+                #region Interop.Excel method
 
                 //ExcelFilePath = @"D:\Sachith\TestUsers.xlsx";
 
@@ -230,7 +233,8 @@ namespace PstDataExtractionTools
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
-                GC.Collect();
+                GC.Collect(); 
+                #endregion
             }
             catch (IOException)
             {
