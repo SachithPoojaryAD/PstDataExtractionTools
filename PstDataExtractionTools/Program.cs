@@ -188,10 +188,7 @@ namespace PstDataExtractionTools
                 //}
                 #endregion
 
-                /*testing*/
                 #region Interop.Excel method
-
-                //ExcelFilePath = @"D:\Sachith\TestUsers.xlsx";
 
                 Microsoft.Office.Interop.Excel.Application xlApp;
                 Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
@@ -241,7 +238,7 @@ namespace PstDataExtractionTools
                     }
                 }
 
-                xlWorkBook.Save();
+                //xlWorkBook.Save();
 
                 //this line causes the excel file to get corrupted
                 //xlWorkBook.SaveAs(excelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
@@ -913,7 +910,7 @@ namespace PstDataExtractionTools
 
             try
             {
-                Console.WriteLine("\nEnter path of log file");
+                Console.WriteLine("\nEnter path of extraction log file");
                 filePath = Console.ReadLine();
                 //InitialLog.AppendLine("\nLog file path: " + filePath);
                 if (string.IsNullOrEmpty(filePath))
@@ -1081,47 +1078,64 @@ namespace PstDataExtractionTools
 
             //get all the worksheets in the excel  file
             xlBigSheet = xlWorkBook.Worksheets;
-            string x = "Extracted";
+            string sheetName = "Extracted";
             //get the specified worksheet
-            xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(x);
+            xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(sheetName);
 
-            //xlSheetRange = xlWorkSheet.UsedRange;
+            xlSheetRange = xlWorkSheet.UsedRange;
 
-            //int colCount = xlSheetRange.Columns.Count;
-            //int rowCount = xlSheetRange.Rows.Count;
-            ////iterate the rows
-            //for (int index = 0; index <= rowCount; index++)
+            int colCount = xlSheetRange.Columns.Count;
+            int rowCount = xlSheetRange.Rows.Count;
+
+            //iterate the rows
+            for (int rowIndex = 1; rowIndex <= rowCount; rowIndex++)
+            {
+                Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[rowIndex, 2];
+                if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User name"))
+                {
+                    Microsoft.Office.Interop.Excel.Range cellAktiv1 = xlSheetRange.Cells[rowIndex, 3];
+                    Microsoft.Office.Interop.Excel.Range cellAktiv2 = xlSheetRange.Cells[rowIndex, 4];
+
+                    if (cellAktiv1.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv1.Value2.ToString()) && cellAktiv1.Value2.ToString().Trim().Equals("Cross-checking"))
+                    {
+
+                        xlSheetRange.Cells[rowIndex, 3] = "Done";
+                    }
+                    if (cellAktiv2.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv2.Value2.ToString()) && cellAktiv2.Value2.ToString().Trim().Equals("Cross-checking"))
+                    {
+                        xlSheetRange.Cells[rowIndex, 4] = "Done";
+                    }
+                }
+            }
+
+            xlWorkBook.Save();
+
+            #region test to print excel
+            //takes all the cells even null valued cells
+            //xlSheetRange = xlWorkSheet.get_Range("A1", "A" + xlWorkSheet.Rows.Count);
+            //var values = (System.Array)xlSheetRange.Cells.Value2;
+
+            //foreach (var n in values)
             //{
-            //    Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[index, 2];
-            //    if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User name"))
+            //    if (n != null && !string.IsNullOrWhiteSpace(n.ToString()))
             //    {
-            //        Microsoft.Office.Interop.Excel.Range cellAktiv1 = xlSheetRange.Cells[index, 3];
-            //        Microsoft.Office.Interop.Excel.Range cellAktiv2 = xlSheetRange.Cells[index, 4];
-
-            //        if (cellAktiv1.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv1.Value2.ToString()) && cellAktiv1.Value2.ToString().Trim().Equals("Cross-checking"))
-            //        {
-
-            //            xlSheetRange.Cells[index, 3] = "Done";
-            //        }
-            //        if (cellAktiv2.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv2.Value2.ToString()) && cellAktiv2.Value2.ToString().Trim().Equals("Cross-checking"))
-            //        {
-            //            xlSheetRange.Cells[index, 4] = "Done";
-            //        }
+            //        Console.WriteLine(n.ToString());
             //    }
             //}
 
-            //xlWorkBook.Save();
-
-            xlSheetRange = xlWorkSheet.get_Range("A1", "A" + xlWorkSheet.Rows.Count);
-            var values = (System.Array)xlSheetRange.Cells.Value2;
-
-            foreach (var n in values)
-            {
-                if (n != null && !string.IsNullOrWhiteSpace(n.ToString()))
-                {
-                    Console.WriteLine(n.ToString());
-                }
-            }
+            //working
+            //for (int rowIndex = 1; rowIndex <= rowCount; rowIndex++)
+            //{
+            //    for (int colIndex = 1; colIndex <= colCount; colIndex++)
+            //    {
+            //        Microsoft.Office.Interop.Excel.Range cellPrint = xlSheetRange.Cells[rowIndex, colIndex];
+            //        if (cellPrint.Value2 != null && !string.IsNullOrWhiteSpace(cellPrint.Value2.ToString()))
+            //        {
+            //            Console.WriteLine(cellPrint.Value2.ToString());
+            //        }
+            //    }
+            //}
+            #endregion
 
             //this line causes the excel file to get corrupted
             //xlWorkBook.SaveAs(excelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
@@ -1138,6 +1152,7 @@ namespace PstDataExtractionTools
             GC.WaitForPendingFinalizers();
             GC.Collect();
 
+            #region OfficeOpenXml method
             //string filePath = @"D:\Sachith\PstTest\TestUsers.xlsx";
 
             //// Saves the file via a FileInfo
@@ -1166,6 +1181,7 @@ namespace PstDataExtractionTools
             //    // Saves new workbook and we are done!
             //    package.Save();
             //}
+            #endregion
 
         }
 
