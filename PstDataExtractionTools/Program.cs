@@ -105,6 +105,10 @@ namespace PstDataExtractionTools
             Console.ReadKey();
         }
 
+        /// <summary>
+        /// Takes the input of excel file, path of aktiv1, aktiv2 and destination folder.
+        /// Iterates through the excel file and calls GetAndMoveFoldersAndFiles method for each user
+        /// </summary>
         private void ReadExcelFile()
         {
             try
@@ -277,102 +281,11 @@ namespace PstDataExtractionTools
             }
         }
 
-        private void MoveFolder(string Aktiv, string folderPath, string searchString)
-        {
-            //flag to check if backup of user has been found
-            bool isBackupFoundFlag = false;
-            foreach (var folder in Directory.GetDirectories(folderPath))
-            {
-                var directoryName = folder;
-                var userName = searchString;
-                var folderPathToSearch = folderPath;
-
-                //remove external from the username
-                if ("extern".Contains(userName.Substring(userName.LastIndexOf("-") + 1).ToLower().Trim()))
-                {
-                    userName = userName.Substring(0, userName.LastIndexOf("-"));
-                }
-
-                //get the frolder name from the folder directory path
-                var strFolderName = folder.Substring(folder.LastIndexOf("\\") + 1);
-
-                //if dash(-) exists in folder name, then remove it and its proceding characters
-                if (int.TryParse(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1), out int n))
-                {
-                    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
-                }
-                //if folder name contains 'extern', then remove it and its preceding string
-                if ("extern".Contains(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1).ToLower()))
-                {
-                    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
-                }
-                strFolderName = strFolderName.Trim();
-
-                //check if a backup folder with the users name exists
-                if ((strFolderName.Contains(userName) || userName.Contains(strFolderName)) && strFolderName.ToLower().Contains(Aktiv.ToLower()))
-                {
-                    try
-                    {
-                        var destinationFolderName = FinalCopyFolderPath + "\\" + folder.Substring(folder.LastIndexOf("\\") + 1);
-                        Directory.Move(folder, destinationFolderName);
-
-                        isBackupFoundFlag = true;
-                        Console.WriteLine("Copied and renamed file: " + destinationFolderName);
-                        AddLogs(LogFilePath + "\\", "Copied and renamed file: " + destinationFolderName + " Username: " + searchString);
-                        JobCount++;
-                        return;
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("Error for user: " + searchString + " Please check logs at " + LogFilePath);
-                        AddLogs(LogFilePath + "\\", "Username:- " + searchString + " " + ex.Message + " stacktrace:- " + ex.StackTrace);
-                    }
-                }
-                else
-                {
-                    var charArray = userName.ToCharArray();
-                    directoryName = strFolderName;
-
-                    for (int i = 0; i < charArray.Length; i++)
-                    {
-                        //if username contains '?', then replace it with the character from folder name at the same index
-                        if (charArray[i].Equals('?') && directoryName.ElementAtOrDefault(i) != 0)
-                        {
-                            charArray[i] = directoryName[i];
-                        }
-                    }
-                    userName = new string(charArray);
-                    userName = userName.Trim();
-
-                    if ((strFolderName.Contains(userName) || userName.Contains(strFolderName)) && strFolderName.ToLower().Contains(Aktiv.ToLower()))
-                    {
-                        try
-                        {
-                            var destinationFolderName = FinalCopyFolderPath + "\\" + folder.Substring(folder.LastIndexOf("\\") + 1);
-                            Directory.Move(folder, destinationFolderName);
-
-                            isBackupFoundFlag = true;
-                            Console.WriteLine("Copied and renamed file: " + destinationFolderName);
-                            AddLogs(LogFilePath + "\\", "Copied and renamed file: " + destinationFolderName + " Username: " + searchString);
-                            JobCount++;
-                            return;
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine("Error for user: " + searchString + " Please check logs at " + LogFilePath);
-                            AddLogs(LogFilePath + "\\", "Username:- " + searchString + " " + ex.Message + " stacktrace:- " + ex.StackTrace);
-                        }
-                    }
-                }
-            }
-            //if no backup is found, print it in log
-            if (!isBackupFoundFlag)
-            {
-                Console.WriteLine(string.Format("Error for user: {0}. Could not find data. Please check logs at {1}", searchString, LogFilePath));
-                AddLogs(LogFilePath + "\\", "Username:- " + searchString + ". Could not find data.");
-            }
-        }
-
+        /// <summary>
+        /// Searches the given folder to find the user name, renames the folder, pst file and moves it to the destination folder
+        /// </summary>
+        /// <param name="folderPath">Path of the folder to search</param>
+        /// <param name="searchString">User name</param>
         private void GetAndMoveFoldersAndFiles(string folderPath, string searchString)
         {
             //flag to check if backup of user has been found
@@ -565,6 +478,108 @@ namespace PstDataExtractionTools
             }
         }
 
+        /// <summary>
+        /// Search and move already renamed folders
+        /// </summary>
+        /// <param name="Aktiv">Aktiv number</param>
+        /// <param name="folderPath">Path of the folder where you want to search</param>
+        /// <param name="searchString">Name of the user that you want to find</param>
+        private void MoveFolder(string Aktiv, string folderPath, string searchString)
+        {
+            //flag to check if backup of user has been found
+            bool isBackupFoundFlag = false;
+            foreach (var folder in Directory.GetDirectories(folderPath))
+            {
+                var directoryName = folder;
+                var userName = searchString;
+                var folderPathToSearch = folderPath;
+
+                //remove external from the username
+                if ("extern".Contains(userName.Substring(userName.LastIndexOf("-") + 1).ToLower().Trim()))
+                {
+                    userName = userName.Substring(0, userName.LastIndexOf("-"));
+                }
+
+                //get the frolder name from the folder directory path
+                var strFolderName = folder.Substring(folder.LastIndexOf("\\") + 1);
+
+                //if dash(-) exists in folder name, then remove it and its proceding characters
+                if (int.TryParse(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1), out int n))
+                {
+                    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
+                }
+                //if folder name contains 'extern', then remove it and its preceding string
+                if ("extern".Contains(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1).ToLower()))
+                {
+                    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
+                }
+                strFolderName = strFolderName.Trim();
+
+                //check if a backup folder with the users name exists
+                if ((strFolderName.Contains(userName) || userName.Contains(strFolderName)) && strFolderName.ToLower().Contains(Aktiv.ToLower()))
+                {
+                    try
+                    {
+                        var destinationFolderName = FinalCopyFolderPath + "\\" + folder.Substring(folder.LastIndexOf("\\") + 1);
+                        Directory.Move(folder, destinationFolderName);
+
+                        isBackupFoundFlag = true;
+                        Console.WriteLine("Copied and renamed file: " + destinationFolderName);
+                        AddLogs(LogFilePath + "\\", "Copied and renamed file: " + destinationFolderName + " Username: " + searchString);
+                        JobCount++;
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error for user: " + searchString + " Please check logs at " + LogFilePath);
+                        AddLogs(LogFilePath + "\\", "Username:- " + searchString + " " + ex.Message + " stacktrace:- " + ex.StackTrace);
+                    }
+                }
+                else
+                {
+                    var charArray = userName.ToCharArray();
+                    directoryName = strFolderName;
+
+                    for (int i = 0; i < charArray.Length; i++)
+                    {
+                        //if username contains '?', then replace it with the character from folder name at the same index
+                        if (charArray[i].Equals('?') && directoryName.ElementAtOrDefault(i) != 0)
+                        {
+                            charArray[i] = directoryName[i];
+                        }
+                    }
+                    userName = new string(charArray);
+                    userName = userName.Trim();
+
+                    if ((strFolderName.Contains(userName) || userName.Contains(strFolderName)) && strFolderName.ToLower().Contains(Aktiv.ToLower()))
+                    {
+                        try
+                        {
+                            var destinationFolderName = FinalCopyFolderPath + "\\" + folder.Substring(folder.LastIndexOf("\\") + 1);
+                            Directory.Move(folder, destinationFolderName);
+
+                            isBackupFoundFlag = true;
+                            Console.WriteLine("Copied and renamed file: " + destinationFolderName);
+                            AddLogs(LogFilePath + "\\", "Copied and renamed file: " + destinationFolderName + " Username: " + searchString);
+                            JobCount++;
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Error for user: " + searchString + " Please check logs at " + LogFilePath);
+                            AddLogs(LogFilePath + "\\", "Username:- " + searchString + " " + ex.Message + " stacktrace:- " + ex.StackTrace);
+                        }
+                    }
+                }
+            }
+            //if no backup is found, print it in log
+            if (!isBackupFoundFlag)
+            {
+                Console.WriteLine(string.Format("Error for user: {0}. Could not find data. Please check logs at {1}", searchString, LogFilePath));
+                AddLogs(LogFilePath + "\\", "Username:- " + searchString + ". Could not find data.");
+            }
+        }
+
         void AddLogs(string path, string errorText)
         {
             StreamWriter sw = new StreamWriter(path + LogFileName, true, Encoding.UTF8);
@@ -572,6 +587,9 @@ namespace PstDataExtractionTools
             sw.Close();
         }
 
+        /// <summary>
+        /// Removes '.pst' from the name of folders which has been extracted
+        /// </summary>
         private void RemovePSTFromFolderName()
         {
             string FolderPath;
@@ -628,6 +646,9 @@ namespace PstDataExtractionTools
             }
         }
 
+        /// <summary>
+        /// Moves the folders which do not contain a .pst file to _ignore folder
+        /// </summary>
         private void RemoveUnwantedFolders()
         {
             string FolderPath;
@@ -700,6 +721,9 @@ namespace PstDataExtractionTools
             }
         }
 
+        /// <summary>
+        /// Renames the .pst files inside of a given folder to the correct format
+        /// </summary>
         private void RenameInternalPSTFiles()
         {
             string currentActivFolder;
@@ -795,6 +819,12 @@ namespace PstDataExtractionTools
             }
         }
 
+        /// <summary>
+        /// Check if renamed folders exists for a user
+        /// </summary>
+        /// <param name="Aktiv">Aktiv number</param>
+        /// <param name="folderPath">Path of the folder where you want to search</param>
+        /// <param name="searchString">Name of the user that you want to find</param>
         private void CheckFolders(string Aktiv, string folderPath, string searchString)
         {
 
@@ -865,6 +895,9 @@ namespace PstDataExtractionTools
             }
         }
 
+        /// <summary>
+        /// Gets the mismatched counts with folder name from the pst extraction logs
+        /// </summary>
         private void GetMismatchCount()
         {
             ////path of log file
@@ -933,6 +966,9 @@ namespace PstDataExtractionTools
             }
         }
 
+        /// <summary>
+        /// Takes the folder path and text file path input from user to search the given folder and calls SearchFolder method
+        /// </summary>
         private void DirectorySearch()
         {
             //path of folder to search
@@ -979,6 +1015,11 @@ namespace PstDataExtractionTools
             SearchFolders(searchDirectory, filePath);
         }
 
+        /// <summary>
+        /// Searches a folder recursively to find a user name. Called by DirectorySearch method
+        /// </summary>
+        /// <param name="searchDir">Path of the folder to search</param>
+        /// <param name="filePath">Path of the text file which contains list to user names</param>
         private void SearchFolders(string searchDir, string filePath)
         {
             try
