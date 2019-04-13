@@ -38,13 +38,14 @@ namespace PstDataExtractionTools
             prog.InitialLog.AppendLine("\n-----------------------------------Start of Log----------------------------------------");
 
             Console.WriteLine("Please select option \n" +
-                "1) Read Excel File and Move & Rename folders \n" +
+                "1) Read excel file and nove & rename folders \n" +
                 "2) Remove .pst from folder name \n" +
                 "3) Remove unwanted folders from destination path \n" +
                 "4) Rename PST Files\n" +
-                "5) Get Mismatch count from log file\n" +
-                "6) Search Directory for backup folder\n" +
-                "7) Exit");
+                "5) Get mismatch count from log file\n" +
+                "6) Search directory for backup folder\n" +
+                "7) Get user list from aktiv folder\n" +
+                "8) Exit\n");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -84,6 +85,11 @@ namespace PstDataExtractionTools
                     prog.DirectorySearch();
                     break;
                 case 7:
+                    Console.WriteLine("Add Folder name to Excel");
+                    prog.InitialLog.AppendLine("\nAdd Folder name to Excel");
+                    prog.GetUserListFromAKtivFolder();
+                    break;
+                case 8:
                     Environment.Exit(0);
                     break;
                 default:
@@ -1049,6 +1055,88 @@ namespace PstDataExtractionTools
             catch (System.Exception ex)
             {
                 Console.WriteLine(ex.Message);
+            }
+        }
+
+        private void GetUserListFromAKtivFolder()
+        {
+            string FolderPath;
+            //string DestinationLogPath;
+            try
+            {
+                Console.WriteLine("\nEnter path of folder");
+                FolderPath = Console.ReadLine();
+                InitialLog.AppendLine("\nFolder path: " + FolderPath);
+                if (string.IsNullOrEmpty(FolderPath))
+                {
+                    throw new InvalidFilePathException("Please enter valid folder path\n");
+                }
+
+                //Console.WriteLine("\nEnter path of destination text file");
+                //DestinationLogPath = Console.ReadLine();
+                //InitialLog.AppendLine("\nDestination log path: " + DestinationLogPath);
+                //if (string.IsNullOrEmpty(DestinationLogPath))
+                //{
+                //    throw new InvalidFilePathException("Please enter valid folder path\n");
+                //}
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+                return;
+            }
+
+            LogFilePath = FolderPath;
+            AddLogs(LogFilePath + "\\", InitialLog.ToString());
+
+            foreach (var folder in Directory.GetDirectories(FolderPath))
+            {
+                ////get the frolder name from the folder directory path
+                ////var strFolderName = folder.Substring(folder.LastIndexOf("\\") + 1).Replace(",", " ");
+                //var strFolderName = folder.Substring(folder.LastIndexOf("\\") + 1);
+
+                ////if dash(-) exists in folder name, then remove it and its proceding characters
+                //if (strFolderName.Contains("-") && int.TryParse(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1), out int n))
+                //{
+                //    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
+                //}
+                ////if folder name contains 'extern', then remove it and its preceding string
+                //if (strFolderName.Contains("-") && "extern".Contains(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1).ToLower().Trim()))
+                //{
+                //    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
+                //}
+
+                //Console.WriteLine(strFolderName);
+
+                DirectoryInfo folderDirectory = new DirectoryInfo(folder);
+                //StreamWriter sw = new StreamWriter(DestinationLogPath, true, Encoding.UTF8);
+                //check if folder contains log files
+                foreach (var file in folderDirectory.GetFiles().OrderBy(f => f.Name))
+                {
+                    if (file.Name.EndsWith(".txt"))
+                    {
+                        //if txt file is present, read the name
+                        var lines = File.ReadAllLines(file.FullName);
+                        for (var i = 0; i < lines.Length; i += 1)
+                        {
+                            var line = lines[i];
+                            //check if the current line contains "Archive Name:"
+                            if (line.Contains("Archive Name:"))
+                            {
+                                //take the string after the colon(:) to get the user's name
+                                var strLine = line.Split(':');
+                                var userName = strLine[1].Trim();
+
+                                //sw.WriteLine(userName);
+
+                                Console.WriteLine(userName);
+
+                                AddLogs(LogFilePath + "\\", userName);
+                            }
+                        }
+                    }
+                }
             }
         }
 
