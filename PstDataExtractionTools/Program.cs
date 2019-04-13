@@ -31,6 +31,7 @@ namespace PstDataExtractionTools
         {
             Program prog = new Program();
             //prog.WriteToExcel(@"D:\Sachith\TestUsers.xlsx");
+            //prog.UpdateExcelForAllAktivUsers();
             prog.InitialLog = new StringBuilder();
 
             DateTime startTime = DateTime.Now;
@@ -1058,6 +1059,9 @@ namespace PstDataExtractionTools
             }
         }
 
+        /// <summary>
+        /// Get the list of users in a aktiv folder
+        /// </summary>
         private void GetUserListFromAKtivFolder()
         {
             string FolderPath;
@@ -1137,6 +1141,185 @@ namespace PstDataExtractionTools
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Combine list of users of aktiv1-5. Combines all the users and removes duplicate users
+        /// </summary>
+        private void CombineUserList()
+        {
+            string allUsersFilePath = @"C:\Users\s.poojary\Desktop\FullUserList.txt";
+            string aktiv1UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv1Users.txt";
+            string aktiv2UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv2Users.txt";
+            string aktiv3UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv3Users.txt";
+            string aktiv4UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv4Users.txt";
+            string aktiv5UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv5Users.txt";
+            string completeUsersFilePath = @"C:\Users\s.poojary\Desktop\CompleteUsers.txt";
+
+            var fullUsersArray = File.ReadAllLines(allUsersFilePath, Encoding.UTF8);
+            //var aktiv1UsersArray = File.ReadAllLines(aktiv1UsersFilePath, Encoding.UTF8);
+            //var aktiv2UsersArray = File.ReadAllLines(aktiv2UsersFilePath, Encoding.UTF8);
+            var aktiv3UsersArray = File.ReadAllLines(aktiv3UsersFilePath, Encoding.UTF8);
+            var aktiv4UsersArray = File.ReadAllLines(aktiv4UsersFilePath, Encoding.UTF8);
+            var aktiv5UsersArray = File.ReadAllLines(aktiv5UsersFilePath, Encoding.UTF8);
+
+            var lstFullUsers = fullUsersArray.ToList();
+            //var lstAktiv1Users = aktiv1UsersArray.ToList();
+            //var lstAktiv2Users = aktiv2UsersArray.ToList();
+            var lstAktiv3Users = aktiv3UsersArray.ToList();
+            var lstAktiv4Users = aktiv4UsersArray.ToList();
+            var lstAktiv5Users = aktiv5UsersArray.ToList();
+
+            var lstCompleteUsers = lstFullUsers.Union(lstAktiv3Users).Union(lstAktiv4Users).Union(lstAktiv5Users).ToList();
+            lstCompleteUsers.Sort();
+
+            File.WriteAllLines(completeUsersFilePath, lstCompleteUsers);
+        }
+
+        /// <summary>
+        /// Update excel sheet to display which users are present in the aktiv folders
+        /// </summary>
+        private void UpdateExcelForAllAktivUsers()
+        {
+
+            try
+            {
+                ExcelFilePath = @"C:\Users\s.poojary\Desktop\Aktiv1-5Users.xlsx";
+                InitialLog = new StringBuilder();
+                InitialLog.AppendLine("\nExcel file path: " + ExcelFilePath);
+
+                string aktiv1UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv1Users.txt";
+                string aktiv2UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv2Users.txt";
+                string aktiv3UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv3Users.txt";
+                string aktiv4UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv4Users.txt";
+                string aktiv5UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv5Users.txt";
+
+                var lstAktiv1Users = File.ReadLines(aktiv1UsersFilePath, Encoding.UTF8);
+                var lstAktiv2Users = File.ReadLines(aktiv2UsersFilePath, Encoding.UTF8);
+                var lstAktiv3Users = File.ReadLines(aktiv3UsersFilePath, Encoding.UTF8);
+                var lstAktiv4Users = File.ReadLines(aktiv4UsersFilePath, Encoding.UTF8);
+                var lstAktiv5Users = File.ReadLines(aktiv5UsersFilePath, Encoding.UTF8);
+
+                Microsoft.Office.Interop.Excel.Application xlApp;
+                Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
+                Microsoft.Office.Interop.Excel.Worksheet xlWorkSheet;
+                Microsoft.Office.Interop.Excel.Sheets xlBigSheet;
+                Microsoft.Office.Interop.Excel.Range xlSheetRange;
+
+                xlApp = new Microsoft.Office.Interop.Excel.Application();
+                //sets whether the excel file will be open during this process
+                xlApp.Visible = false;
+                //open the excel file
+                xlWorkBook = xlApp.Workbooks.Open(ExcelFilePath, 0,
+                            false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
+                             "", true, false, 0, true, false, false);
+
+                //get all the worksheets in the excel  file
+                xlBigSheet = xlWorkBook.Worksheets;
+
+                string xlSheetName = "Sheet1";
+
+                //get the specified worksheet
+                xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(xlSheetName);
+
+                xlSheetRange = xlWorkSheet.UsedRange;
+
+                int colCount = xlSheetRange.Columns.Count;
+                int rowCount = xlSheetRange.Rows.Count;
+                //iterate the rows
+                for (int rowIndex = 1; rowIndex <= rowCount; rowIndex++)
+                {
+                    Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[rowIndex, 2];
+                    if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().ToLower().Trim().Equals("user name"))
+                    {
+                        if(lstAktiv1Users.Any(str => str.Contains(cell.Value2.ToString())))
+                        {
+                            xlSheetRange.Cells[rowIndex, 3] = "Yes";
+                        }
+                        else
+                        {
+                            xlSheetRange.Cells[rowIndex, 3] = "No";
+                        }
+
+                        if(lstAktiv2Users.Any(str => str.Contains(cell.Value2.ToString())))
+                        {
+                            xlSheetRange.Cells[rowIndex, 4] = "Yes";
+                        }
+                        else
+                        {
+                            xlSheetRange.Cells[rowIndex, 4] = "No";
+                        }
+
+                        if(lstAktiv3Users.Any(str => str.Contains(cell.Value2.ToString())))
+                        {
+                            xlSheetRange.Cells[rowIndex, 5] = "Yes";
+                        }
+                        else
+                        {
+                            xlSheetRange.Cells[rowIndex, 5] = "No";
+                        }
+
+                        if(lstAktiv4Users.Any(str => str.Contains(cell.Value2.ToString())))
+                        {
+                            xlSheetRange.Cells[rowIndex, 6] = "Yes";
+                        }
+                        else
+                        {
+                            xlSheetRange.Cells[rowIndex, 6] = "No";
+                        }
+
+                        if(lstAktiv5Users.Any(str => str.Contains(cell.Value2.ToString())))
+                        {
+                            xlSheetRange.Cells[rowIndex, 7] = "Yes";
+                        }
+                        else
+                        {
+                            xlSheetRange.Cells[rowIndex, 7] = "No";
+                        }
+
+                        Console.WriteLine(rowIndex);
+                    }
+                }
+
+                xlWorkBook.Save();
+
+                //this line causes the excel file to get corrupted
+                //xlWorkBook.SaveAs(excelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
+                //        Missing.Value, Missing.Value, Missing.Value, Missing.Value, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive,
+                //        Missing.Value, Missing.Value, Missing.Value,
+                //        Missing.Value, Missing.Value);
+
+                //cleanup
+                xlWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+                xlWorkBook = null;
+                xlApp.Quit();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
+                Console.WriteLine("Done");
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("\nThe Excel file cannot be accessed if it is open. Please close the excel file and try again");
+                AddLogs(LogFilePath + "\\", "The Excel file cannot be accessed if it is open. Please close the excel file and try again");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine("\nThe path of the excel file is not valid");
+                AddLogs(LogFilePath + "\\", "The path of the excel file is not valid");
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nError please check logs at " + LogFilePath);
+                AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
             }
         }
 
