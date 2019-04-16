@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using System.Collections.Generic;
 
 namespace PstDataExtractionTools
 {
@@ -46,7 +47,8 @@ namespace PstDataExtractionTools
                 "5) Get mismatch count from log file\n" +
                 "6) Search directory for backup folder\n" +
                 "7) Get user list from aktiv folder\n" +
-                "8) Exit\n");
+                "8) Update main excel sheet\n" +
+                "9) Exit\n");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -91,6 +93,11 @@ namespace PstDataExtractionTools
                     prog.GetUserListFromAKtivFolder();
                     break;
                 case 8:
+                    Console.WriteLine("Update main excel sheet");
+                    prog.InitialLog.AppendLine("\nUpdate main excel sheet");
+                    prog.UpdateExcelForAllAktivUsers();
+                    break;
+                case 9:
                     Environment.Exit(0);
                     break;
                 default:
@@ -627,6 +634,10 @@ namespace PstDataExtractionTools
                     {
                         //replace '.pst' with empty string
                         var newFolderName = folder.Replace(".pst", string.Empty);
+                        if (newFolderName.Contains("-Aktiv"))
+                        {
+                            newFolderName = newFolderName.Replace("-Aktiv", "_Aktiv");
+                        }
                         try
                         {
                             //move the newly renamed folder
@@ -1185,115 +1196,211 @@ namespace PstDataExtractionTools
 
             try
             {
-                ExcelFilePath = @"C:\Users\s.poojary\Desktop\Aktiv1-5Users.xlsx";
-                InitialLog = new StringBuilder();
-                InitialLog.AppendLine("\nExcel file path: " + ExcelFilePath);
+                var SourceExcelFilePath = @"C:\Users\s.poojary\Desktop\Extracted_Report16Apr14.18.xlsx";
+                var DestinationExcelFilePath = @"C:\Users\s.poojary\Desktop\Aktiv1-5Users.xlsx";
+                //InitialLog = new StringBuilder();
+                AddLogs(LogFilePath + "\\", "\nSource Excel file path: " + SourceExcelFilePath);
+                AddLogs(LogFilePath + "\\", "\nDestination Excel file path: " + DestinationExcelFilePath);
 
-                string aktiv1UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv1Users.txt";
-                string aktiv2UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv2Users.txt";
-                string aktiv3UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv3Users.txt";
-                string aktiv4UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv4Users.txt";
-                string aktiv5UsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv5Users.txt";
+                //string aktiv1UsersFilePath = @"C:\Users\s.poojary\Desktop\UserList\Aktiv1Users.txt";
+                //string aktiv2UsersFilePath = @"C:\Users\s.poojary\Desktop\UserList\Aktiv2Users.txt";
+                //string aktiv3UsersFilePath = @"C:\Users\s.poojary\Desktop\UserList\Aktiv3Users.txt";
+                //string aktiv4UsersFilePath = @"C:\Users\s.poojary\Desktop\UserList\Aktiv4Users.txt";
+                //string aktiv5UsersFilePath = @"C:\Users\s.poojary\Desktop\UserList\Aktiv5Users.txt";
+                //string sharedUsersFilePath = @"C:\Users\s.poojary\Desktop\UserList\SharedUsers.txt";
 
-                var lstAktiv1Users = File.ReadLines(aktiv1UsersFilePath, Encoding.UTF8);
-                var lstAktiv2Users = File.ReadLines(aktiv2UsersFilePath, Encoding.UTF8);
-                var lstAktiv3Users = File.ReadLines(aktiv3UsersFilePath, Encoding.UTF8);
-                var lstAktiv4Users = File.ReadLines(aktiv4UsersFilePath, Encoding.UTF8);
-                var lstAktiv5Users = File.ReadLines(aktiv5UsersFilePath, Encoding.UTF8);
+                //var lstAktiv1Users = File.ReadLines(aktiv1UsersFilePath, Encoding.UTF8);
+                //var lstAktiv2Users = File.ReadLines(aktiv2UsersFilePath, Encoding.UTF8);
+                //var lstAktiv3Users = File.ReadLines(aktiv3UsersFilePath, Encoding.UTF8);
+                //var lstAktiv4Users = File.ReadLines(aktiv4UsersFilePath, Encoding.UTF8);
+                //var lstAktiv5Users = File.ReadLines(aktiv5UsersFilePath, Encoding.UTF8);
+                //var lstSharedUsers = File.ReadLines(sharedUsersFilePath, Encoding.UTF8);
 
-                Microsoft.Office.Interop.Excel.Application xlApp;
-                Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
-                Microsoft.Office.Interop.Excel.Worksheet xlWorkSheet;
-                Microsoft.Office.Interop.Excel.Sheets xlBigSheet;
-                Microsoft.Office.Interop.Excel.Range xlSheetRange;
+                #region Source excel sheet setup
+                Microsoft.Office.Interop.Excel.Application xlSourceApp;
+                Microsoft.Office.Interop.Excel.Workbook xlSourceWorkBook;
+                Microsoft.Office.Interop.Excel.Worksheet xlSourceWorkSheet;
+                Microsoft.Office.Interop.Excel.Sheets xlSourceBigSheet;
+                Microsoft.Office.Interop.Excel.Range xlSourceSheetRange;
 
-                xlApp = new Microsoft.Office.Interop.Excel.Application();
+                xlSourceApp = new Microsoft.Office.Interop.Excel.Application();
                 //sets whether the excel file will be open during this process
-                xlApp.Visible = false;
+                xlSourceApp.Visible = false;
                 //open the excel file
-                xlWorkBook = xlApp.Workbooks.Open(ExcelFilePath, 0,
+                xlSourceWorkBook = xlSourceApp.Workbooks.Open(SourceExcelFilePath, 0,
                             false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
                              "", true, false, 0, true, false, false);
 
                 //get all the worksheets in the excel  file
-                xlBigSheet = xlWorkBook.Worksheets;
+                xlSourceBigSheet = xlSourceWorkBook.Worksheets;
 
-                string xlSheetName = "Sheet1";
+                string xlSourceSheetName = "Aktiv5_Users";
 
                 //get the specified worksheet
-                xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(xlSheetName);
+                xlSourceWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlSourceBigSheet.get_Item(xlSourceSheetName);
 
-                xlSheetRange = xlWorkSheet.UsedRange;
+                xlSourceSheetRange = xlSourceWorkSheet.UsedRange;
 
-                int colCount = xlSheetRange.Columns.Count;
-                int rowCount = xlSheetRange.Rows.Count;
-                //iterate the rows
-                for (int rowIndex = 1; rowIndex <= rowCount; rowIndex++)
+                int sourceColCount = xlSourceSheetRange.Columns.Count;
+                int sourceRowCount = xlSourceSheetRange.Rows.Count;
+                #endregion
+
+                #region Destination sheet setup
+                Microsoft.Office.Interop.Excel.Application xlDestinationApp;
+                Microsoft.Office.Interop.Excel.Workbook xlDestinationWorkBook;
+                Microsoft.Office.Interop.Excel.Worksheet xlDestinationWorkSheet;
+                Microsoft.Office.Interop.Excel.Sheets xlDestinationBigSheet;
+                Microsoft.Office.Interop.Excel.Range xlDestinationSheetRange;
+
+                xlDestinationApp = new Microsoft.Office.Interop.Excel.Application();
+                //sets whether the excel file will be open during this process
+                xlDestinationApp.Visible = false;
+                //open the excel file
+                xlDestinationWorkBook = xlDestinationApp.Workbooks.Open(DestinationExcelFilePath, 0,
+                            false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
+                             "", true, false, 0, true, false, false);
+
+                //get all the worksheets in the excel  file
+                xlDestinationBigSheet = xlDestinationWorkBook.Worksheets;
+
+                string xlDestinationSheetName = "Sheet1";
+
+                //get the specified worksheet
+                xlDestinationWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlDestinationBigSheet.get_Item(xlDestinationSheetName);
+
+                xlDestinationSheetRange = xlDestinationWorkSheet.UsedRange;
+
+                int destinationColCount = xlDestinationSheetRange.Columns.Count;
+                int destinationRowCount = xlDestinationSheetRange.Rows.Count;
+                #endregion
+
+                Dictionary<int, string> dictSourceColoumns = new Dictionary<int, string>();
+                Dictionary<int, string> dictDestinationColoumns = new Dictionary<int, string>();
+
+                for (int i = 1; i <= sourceColCount; i++)
                 {
-                    Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[rowIndex, 2];
-                    if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().ToLower().Trim().Equals("user name"))
+                    Microsoft.Office.Interop.Excel.Range colCell = xlSourceSheetRange.Cells[1, i];
+                    dictSourceColoumns.Add(i, colCell.Value2.ToString());
+                }
+                for (int i = 1; i <= destinationColCount; i++)
+                {
+                    Microsoft.Office.Interop.Excel.Range colCell = xlDestinationSheetRange.Cells[1, i];
+                    dictDestinationColoumns.Add(i, colCell.Value2.ToString());
+                }
+
+                int nameIndex = 1;
+                //iterate the rows
+                for (int sourceRowIndex = 1; sourceRowIndex <= sourceRowCount; sourceRowIndex++)
+                {
+                    Microsoft.Office.Interop.Excel.Range nameCell = xlSourceSheetRange.Cells[sourceRowIndex, 2];
+                    if (nameCell.Value2 != null && !string.IsNullOrWhiteSpace(nameCell.Value2.ToString()) && !nameCell.Value2.ToString().ToLower().Trim().Equals("Users"))
                     {
-                        if(lstAktiv1Users.Any(str => str.Contains(cell.Value2.ToString())))
-                        {
-                            xlSheetRange.Cells[rowIndex, 3] = "Yes";
-                        }
-                        else
-                        {
-                            xlSheetRange.Cells[rowIndex, 3] = "No";
-                        }
+                        string sourceUserName = nameCell.Value2.ToString();
 
-                        if(lstAktiv2Users.Any(str => str.Contains(cell.Value2.ToString())))
+                        for (int destinationRowIndex = nameIndex; destinationRowIndex <= destinationRowCount; destinationRowIndex++)
                         {
-                            xlSheetRange.Cells[rowIndex, 4] = "Yes";
-                        }
-                        else
-                        {
-                            xlSheetRange.Cells[rowIndex, 4] = "No";
-                        }
+                            Microsoft.Office.Interop.Excel.Range cell = xlDestinationSheetRange.Cells[destinationRowIndex, 2];
+                            if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().ToLower().Trim().Equals("user name"))
+                            {
+                                string destinationUserName = cell.Value2.ToString();
+                                #region code for updated aktiv1-5 status
+                                //if (lstAktiv1Users.Any(str => str.Contains(userName)))
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 3] = "Yes";
+                                //}
+                                //else
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 3] = "No";
+                                //}
 
-                        if(lstAktiv3Users.Any(str => str.Contains(cell.Value2.ToString())))
-                        {
-                            xlSheetRange.Cells[rowIndex, 5] = "Yes";
-                        }
-                        else
-                        {
-                            xlSheetRange.Cells[rowIndex, 5] = "No";
-                        }
+                                //if(lstAktiv2Users.Any(str => str.Contains(userName)))
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 4] = "Yes";
+                                //}
+                                //else
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 4] = "No";
+                                //}
 
-                        if(lstAktiv4Users.Any(str => str.Contains(cell.Value2.ToString())))
-                        {
-                            xlSheetRange.Cells[rowIndex, 6] = "Yes";
-                        }
-                        else
-                        {
-                            xlSheetRange.Cells[rowIndex, 6] = "No";
-                        }
+                                //if(lstAktiv3Users.Any(str => str.Contains(userName)))
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 5] = "Yes";
+                                //}
+                                //else
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 5] = "No";
+                                //}
 
-                        if(lstAktiv5Users.Any(str => str.Contains(cell.Value2.ToString())))
-                        {
-                            xlSheetRange.Cells[rowIndex, 7] = "Yes";
-                        }
-                        else
-                        {
-                            xlSheetRange.Cells[rowIndex, 7] = "No";
-                        }
+                                //if(lstAktiv4Users.Any(str => str.Contains(userName)))
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 6] = "Yes";
+                                //}
+                                //else
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 6] = "No";
+                                //}
 
-                        Console.WriteLine(rowIndex);
+                                //if(lstAktiv5Users.Any(str => str.Contains(userName)))
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 7] = "Yes";
+                                //}
+                                //else
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 7] = "No";
+                                //}
+
+                                //if(lstSharedUsers.Any(str => str.Contains(userName)))
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 8] = "Yes";
+                                //}
+                                //else
+                                //{
+                                //    xlDestinationSheetRange.Cells[destinationRowIndex, 8] = "No";
+                                //}
+                                #endregion
+
+                                if (sourceUserName.ToLower().Trim().Equals(destinationUserName.ToLower().Trim()))
+                                {
+                                    nameIndex = destinationRowIndex + 1;
+                                    JobCount++;
+
+                                    var matches = dictDestinationColoumns.Values.Intersect(dictSourceColoumns.Values);
+                                    foreach (var m in matches)
+                                    {
+                                        var sourceColoumn = dictSourceColoumns.Where(x => m.Equals(x.Value)).Select(x => x.Key).First();
+                                        var destinationColoumn = dictDestinationColoumns.Where(x => m.Equals(x.Value)).Select(x => x.Key).First();
+
+
+                                        xlDestinationSheetRange.Cells[destinationRowIndex, destinationColoumn] = xlSourceSheetRange[sourceRowIndex, sourceColoumn];
+
+
+                                    }
+
+
+                                    //xlDestinationSheetRange.Cells[destinationRowIndex, 9] = xlSourceSheetRange[sourceRowIndex, 3];
+                                }
+
+                            }
+                        }
+                        Console.WriteLine(sourceRowIndex);
+                        //AddLogs(LogFilePath + "\\", "\n" + sourceRowIndex.ToString());
                     }
                 }
 
-                xlWorkBook.Save();
 
-                //this line causes the excel file to get corrupted
-                //xlWorkBook.SaveAs(excelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
-                //        Missing.Value, Missing.Value, Missing.Value, Missing.Value, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive,
-                //        Missing.Value, Missing.Value, Missing.Value,
-                //        Missing.Value, Missing.Value);
+
+
+                xlDestinationWorkBook.Save();
 
                 //cleanup
-                xlWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
-                xlWorkBook = null;
-                xlApp.Quit();
+                xlSourceWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+                xlSourceWorkBook = null;
+                xlSourceApp.Quit();
+
+                xlDestinationWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+                xlDestinationWorkBook = null;
+                xlDestinationApp.Quit();
+
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
@@ -1321,139 +1428,6 @@ namespace PstDataExtractionTools
                 Console.WriteLine("\nError please check logs at " + LogFilePath);
                 AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
             }
-        }
-
-        /*Incomplete*/
-        private void WriteToExcel(string excelFilePath)
-        {
-            //Console.WriteLine("\nEnter path of excel file");
-            //ExcelFilePath = Console.ReadLine();
-            //InitialLog.AppendLine("\nExcel file path: " + ExcelFilePath);
-
-            //ExcelFilePath = @"D:\Sachith\TestUsers.xlsx";
-            //string excelFilePath = System.Web.HttpUtility.HtmlEncode(@"https://avendatagmbh-my.sharepoint.com/:x:/r/personal/s_poojary_avendata_com/_layouts/15/Doc.aspx?sourcedoc=%7BBB1C2FB1-3ABC-4856-B53E-EE150E98F64A%7D&file=Book%201.xlsx&action=editnew&mobileredirect=true&wdNewAndOpenCt=1554865062581&wdPreviousSession=8cb444c0-ac3b-4ff6-a931-b466fe30dc56&wdOrigin=ohpAppStartPages");
-
-            Microsoft.Office.Interop.Excel.Application xlApp;
-            Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
-            Microsoft.Office.Interop.Excel.Worksheet xlWorkSheet;
-            Microsoft.Office.Interop.Excel.Sheets xlBigSheet;
-            Microsoft.Office.Interop.Excel.Range xlSheetRange;
-
-            xlApp = new Microsoft.Office.Interop.Excel.Application();
-            //sets whether the excel file will be open during this process
-            xlApp.Visible = false;
-            //open the excel file
-            xlWorkBook = xlApp.Workbooks.Open(excelFilePath, 0,
-                        false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
-                         "", true, false, 0, true, false, false);
-
-            //get all the worksheets in the excel  file
-            xlBigSheet = xlWorkBook.Worksheets;
-            string sheetName = "Extracted";
-            //get the specified worksheet
-            xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(sheetName);
-
-            xlSheetRange = xlWorkSheet.UsedRange;
-
-            int colCount = xlSheetRange.Columns.Count;
-            int rowCount = xlSheetRange.Rows.Count;
-
-            //iterate the rows
-            for (int rowIndex = 1; rowIndex <= rowCount; rowIndex++)
-            {
-                Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[rowIndex, 2];
-                if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User name"))
-                {
-                    Microsoft.Office.Interop.Excel.Range cellAktiv1 = xlSheetRange.Cells[rowIndex, 3];
-                    Microsoft.Office.Interop.Excel.Range cellAktiv2 = xlSheetRange.Cells[rowIndex, 4];
-
-                    if (cellAktiv1.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv1.Value2.ToString()) && cellAktiv1.Value2.ToString().Trim().Equals("Cross-checking"))
-                    {
-
-                        xlSheetRange.Cells[rowIndex, 3] = "Done";
-                    }
-                    if (cellAktiv2.Value2 != null && !string.IsNullOrWhiteSpace(cellAktiv2.Value2.ToString()) && cellAktiv2.Value2.ToString().Trim().Equals("Cross-checking"))
-                    {
-                        xlSheetRange.Cells[rowIndex, 4] = "Done";
-                    }
-                }
-            }
-
-            xlWorkBook.Save();
-
-            #region test to print excel
-            //takes all the cells even null valued cells
-            //xlSheetRange = xlWorkSheet.get_Range("A1", "A" + xlWorkSheet.Rows.Count);
-            //var values = (System.Array)xlSheetRange.Cells.Value2;
-
-            //foreach (var n in values)
-            //{
-            //    if (n != null && !string.IsNullOrWhiteSpace(n.ToString()))
-            //    {
-            //        Console.WriteLine(n.ToString());
-            //    }
-            //}
-
-            //working
-            //for (int rowIndex = 1; rowIndex <= rowCount; rowIndex++)
-            //{
-            //    for (int colIndex = 1; colIndex <= colCount; colIndex++)
-            //    {
-            //        Microsoft.Office.Interop.Excel.Range cellPrint = xlSheetRange.Cells[rowIndex, colIndex];
-            //        if (cellPrint.Value2 != null && !string.IsNullOrWhiteSpace(cellPrint.Value2.ToString()))
-            //        {
-            //            Console.WriteLine(cellPrint.Value2.ToString());
-            //        }
-            //    }
-            //}
-            #endregion
-
-            //this line causes the excel file to get corrupted
-            //xlWorkBook.SaveAs(excelFilePath, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookNormal,
-            //        Missing.Value, Missing.Value, Missing.Value, Missing.Value, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive,
-            //        Missing.Value, Missing.Value, Missing.Value,
-            //        Missing.Value, Missing.Value);
-
-            //cleanup
-            xlWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
-            xlWorkBook = null;
-            xlApp.Quit();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-
-            #region OfficeOpenXml method
-            //string filePath = @"D:\Sachith\PstTest\TestUsers.xlsx";
-
-            //// Saves the file via a FileInfo
-            //var file = new FileInfo(filePath);
-
-            //// Creates the package and make sure you wrap it in a using statement
-            //using (var package = new ExcelPackage(file))
-            //{
-            //    // Adds a new worksheet to the empty workbook
-            //    //OfficeOpenXml.ExcelWorksheet worksheet = package.Workbook.Worksheets["Extracted"];
-            //    OfficeOpenXml.Core.ExcelPackage.ExcelWorksheet worksheet = package.Workbook.Worksheets["Sheet1"];
-
-
-            //    // Starts to get data from database
-            //    for (int row = 1; row < 10; row++)
-            //    {
-            //        // Writes data from sql database to excel's columns
-            //        for (int col = 1; col < 10; col++)
-            //        {
-            //            worksheet.Cell(row, col).Value = Convert.ToString(row * col);
-            //        }// Ends writing data from sql database to excel's columns
-
-            //    }// Ends getting data from database
-
-
-            //    // Saves new workbook and we are done!
-            //    package.Save();
-            //}
-            #endregion
-
         }
 
     }
