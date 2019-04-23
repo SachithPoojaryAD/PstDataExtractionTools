@@ -1441,7 +1441,9 @@ namespace PstDataExtractionTools
         /// </summary>
         private void DeleteFileType()
         {
+            //path of folder to search
             string FolderPath;
+            //extension of file type that is to be deleted
             string Extension;
             try
             {
@@ -1488,13 +1490,16 @@ namespace PstDataExtractionTools
                 //FileInfo[] files = di.GetFiles("*.eml")
                 //                     .Where(p => p.Extension == ".eml").ToArray();
 
+                //get all the files of the specified extension
                 FileInfo[] files = di.GetFiles("*" + extension)
                                      .Where(p => p.Extension == extension).ToArray();
                 foreach (FileInfo file in files)
                 {
                     try
                     {
+                        //set the attribute to normal if it is something different ie. read only etc
                         file.Attributes = FileAttributes.Normal;
+                        //delete the file
                         File.Delete(file.FullName);
 
                         Console.WriteLine("Deleted File: " + file.FullName);
@@ -1503,11 +1508,12 @@ namespace PstDataExtractionTools
                     }
                     catch (System.Exception ex)
                     {
-                        Console.WriteLine(ex.Message);
+                        Console.WriteLine("Error: " + ex.Message + ". File: " + file.FullName);
+                        AddLogs(LogFilePath + "\\", "\nError: " + ex.Message + ". File: " + file.FullName);
                     }
                 }
 
-                //search the current directory and delete file if it matches extension
+                //search the current directory and delete file if it matches the extension
                 DeleteFileTypeFromFolder(directory, extension);
             }
         }
