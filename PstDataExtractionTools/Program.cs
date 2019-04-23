@@ -48,7 +48,8 @@ namespace PstDataExtractionTools
                 "6) Search directory for backup folder\n" +
                 "7) Get user list from aktiv folder\n" +
                 "8) Update main excel sheet\n" +
-                "9) Exit\n");
+                "9) Delete file type from folder\n" +
+                "10) Exit\n");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -98,6 +99,11 @@ namespace PstDataExtractionTools
                     prog.UpdateExcelForAllAktivUsers();
                     break;
                 case 9:
+                    Console.WriteLine("Delete file type from folder");
+                    prog.InitialLog.AppendLine("\nDelete file type from folder");
+                    prog.DeleteFileType();
+                    break;
+                case 10:
                     Environment.Exit(0);
                     break;
                 default:
@@ -1430,5 +1436,80 @@ namespace PstDataExtractionTools
             }
         }
 
+        /// <summary>
+        /// Takes the folder path and file extension input from user to search the given folder and calls DeleteFileTypeFromFolder method
+        /// </summary>
+        private void DeleteFileType()
+        {
+            string FolderPath;
+            string Extension;
+            try
+            {
+                Console.WriteLine("\nEnter path of folder");
+                FolderPath = Console.ReadLine();
+                InitialLog.AppendLine("\nFolder path: " + FolderPath);
+                if (string.IsNullOrEmpty(FolderPath))
+                {
+                    throw new InvalidFilePathException("Please enter valid folder path\n");
+                }
+
+                Console.WriteLine("\nEnter extension of file type to delete");
+                Extension = Console.ReadLine();
+                InitialLog.AppendLine("\nExtension Type: " + Extension);
+                if (string.IsNullOrEmpty(Extension))
+                {
+                    throw new InvalidFilePathException("Please enter valid file extension\n");
+                }
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+                return;
+            }
+
+            LogFilePath = FolderPath;
+            AddLogs(LogFilePath + "\\", InitialLog.ToString());
+
+            DeleteFileTypeFromFolder(FolderPath, Extension);
+        }
+
+        /// <summary>
+        /// Searches a folder recursively to delete all files of the specified extension. Called by DeleteFileType method
+        /// </summary>
+        /// <param name="path">Path of the folder to search</param>
+        /// <param name="extension">Extension of the file type to delete</param>
+        private void DeleteFileTypeFromFolder(string path, string extension)
+        {
+            foreach (var directory in Directory.GetDirectories(path))
+            {
+                DirectoryInfo di = new DirectoryInfo(directory);
+
+                //FileInfo[] files = di.GetFiles("*.eml")
+                //                     .Where(p => p.Extension == ".eml").ToArray();
+
+                FileInfo[] files = di.GetFiles("*" + extension)
+                                     .Where(p => p.Extension == extension).ToArray();
+                foreach (FileInfo file in files)
+                {
+                    try
+                    {
+                        file.Attributes = FileAttributes.Normal;
+                        File.Delete(file.FullName);
+
+                        Console.WriteLine("Deleted File: " + file.FullName);
+                        AddLogs(LogFilePath + "\\", "\nDeleted File: " + file.FullName);
+                        JobCount++;
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
+                }
+
+                //search the current directory and delete file if it matches extension
+                DeleteFileTypeFromFolder(directory, extension);
+            }
+        }
     }
 }
