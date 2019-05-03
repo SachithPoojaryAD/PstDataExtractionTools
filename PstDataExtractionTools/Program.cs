@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Reflection;
 using System.Collections.Generic;
+using MySql.Data.MySqlClient;
 
 namespace PstDataExtractionTools
 {
@@ -52,7 +53,8 @@ namespace PstDataExtractionTools
                 "8) Update main excel sheet\n" +
                 "9) Delete file type from folder\n" +
                 "10) Update excel aktiv status\n" +
-                "11) Exit\n");
+                "11) Get DB User Count\n" +
+                "12) Exit\n");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -112,6 +114,11 @@ namespace PstDataExtractionTools
                     prog.UpdateExcelAktivStatus();
                     break;
                 case 11:
+                    Console.WriteLine("Get DB User Count");
+                    prog.InitialLog.AppendLine("\nGet DB User Count");
+                    prog.UpdateExcelMatchedColoumn();
+                    break;
+                case 12:
                     Environment.Exit(0);
                     break;
                 default:
@@ -247,7 +254,7 @@ namespace PstDataExtractionTools
                 int colCount = xlSheetRange.Columns.Count;
                 int rowCount = xlSheetRange.Rows.Count;
                 //iterate the rows
-                for (int index = 0; index <= rowCount; index++)
+                for (int index = 1; index <= rowCount; index++)
                 {
                     Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[index, 2];
                     if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User name"))
@@ -1739,6 +1746,337 @@ namespace PstDataExtractionTools
             {
                 Console.WriteLine("\nError please check logs at " + LogFilePath);
                 AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of messages from database, compare it with the value in local file and update excel sheet if it matches
+        /// </summary>
+        private void UpdateExcelMatchedColoumn()
+        {
+            try
+            {
+                //connection string of database
+                string constring = @"server=192.168.90.61;port=3321;User Id=alr;password=auW+2Dc.sAso;database=emailarchiv_test_final;CharacterSet=utf8;Convert Zero Datetime=True;Allow Zero Datetime=True;AllowUserVariables=True";
+
+                //path of folder where pst files are located
+                string FolderPath;
+
+                try
+                {
+                    Console.WriteLine("\nEnter path of pst folder");
+                    FolderPath = Console.ReadLine();
+                    LogFilePath = FolderPath;
+                    AddLogs(LogFilePath + "\\", "\nPath of pst folder: " + FolderPath);
+                    if (string.IsNullOrEmpty(FolderPath))
+                    {
+                        throw new InvalidFilePathException("Please enter valid folder path\n");
+                    }
+                }
+                catch (InvalidFilePathException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    AddLogs(LogFilePath + "\\", ex.Message);
+                    return;
+                }
+
+                Console.WriteLine("\nEnter path of excel file");
+                ExcelFilePath = Console.ReadLine();
+                InitialLog.AppendLine("\nExcel file path: " + ExcelFilePath);
+
+                Microsoft.Office.Interop.Excel.Application xlApp;
+                Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
+                Microsoft.Office.Interop.Excel.Worksheet xlWorkSheet;
+                Microsoft.Office.Interop.Excel.Sheets xlBigSheet;
+                Microsoft.Office.Interop.Excel.Range xlSheetRange;
+
+                xlApp = new Microsoft.Office.Interop.Excel.Application();
+                //sets whether the excel file will be open during this process
+                xlApp.Visible = false;
+                //open the excel file
+                xlWorkBook = xlApp.Workbooks.Open(ExcelFilePath, 0,
+                            false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
+                             "", true, false, 0, true, false, false);
+
+                //get all the worksheets in the excel  file
+                xlBigSheet = xlWorkBook.Worksheets;
+                var xlSheetName = "User_list_fnl";
+
+                //get the specified worksheet
+                xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlBigSheet.get_Item(xlSheetName);
+
+                xlSheetRange = xlWorkSheet.UsedRange;
+
+                int colCount = xlSheetRange.Columns.Count;
+                int rowCount = xlSheetRange.Rows.Count;
+
+                MySqlConnection con = new MySqlConnection(constring);
+                con.Open();
+
+                StreamWriter sw = new StreamWriter(LogFilePath + string.Format("\\Mismatch{0}.txt", DateTime.Now.ToFileTime()), true, Encoding.UTF8);
+
+                foreach (var folder in Directory.GetDirectories(FolderPath))
+                {
+                    var directoryName = folder;
+                    var folderPathToSearch = FolderPath;
+                    int folderCounter = 0;
+
+
+                    //get the frolder name from the folder directory path
+                    var strFolderName = folder.Substring(folder.LastIndexOf("\\") + 1).Replace(" ", string.Empty);
+                    directoryName = strFolderName;
+
+                    //if dash(-) exists in folder name, then remove it and its proceding characters
+                    if (strFolderName.Contains("-") && int.TryParse(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1, strFolderName.Length - strFolderName.LastIndexOf("_") - 2), out int n))
+                    {
+                        strFolderName = strFolderName.Remove(strFolderName.LastIndexOf("-"), strFolderName.Length - strFolderName.LastIndexOf("_") - 1);
+                    }
+                    //if folder name contains 'extern', then remove it and its preceding string
+                    //if (strFolderName.Contains("-") && "extern".Contains(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1).ToLower().Trim()))
+                    //{
+                    //    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
+                    //}
+
+                    strFolderName = strFolderName.Replace(",", string.Empty).Replace(" ", string.Empty).Trim();
+
+                    //iterate the rows in excel sheet
+                    for (int rowIndex = 1; rowIndex <= rowCount; rowIndex++)
+                    {
+                        Microsoft.Office.Interop.Excel.Range cell = xlSheetRange.Cells[rowIndex, 2];
+                        if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("User Name"))
+                        {
+                            string username = cell.Value2.ToString();
+
+                            //format username similar to folder name
+                            var name = username.Replace(",", string.Empty).Replace(" ", string.Empty).Trim();
+
+
+                            //remove external from the name
+                            //if ("extern".Contains(name.Substring(name.LastIndexOf("-") + 1).ToLower().Trim()))
+                            //{
+                            //    name = name.Substring(0, name.LastIndexOf("-"));
+                            //}
+
+                            //check if a backup folder with the users name exists
+                            if (strFolderName.Contains(name) || name.Contains(strFolderName))
+                            {
+                                try
+                                {
+                                    DirectoryInfo folderDirectory = new DirectoryInfo(folder);
+                                    //check if folder contains log files
+                                    foreach (var file in folderDirectory.GetFiles().OrderBy(f => f.Name))
+                                    {
+                                        if (file.Name.EndsWith(".txt"))
+                                        {
+                                            //if txt file is present, iterate through it
+                                            var lines = File.ReadAllLines(file.FullName);
+                                            for (var i = 0; i < lines.Length; i += 1)
+                                            {
+                                                var line = lines[i];
+                                                //check if the current line contains "Items exported:"
+                                                if (line.Contains("Items exported:"))
+                                                {
+                                                    //take the string after the colon(:) to get message count
+                                                    var strLine = line.Split(':');
+                                                    var count = strLine[1].Trim();
+
+                                                    //AddLogs(LogFilePath + "\\", count);
+
+                                                    var postfach = username.Replace(",", string.Empty).Trim();
+                                                    //postfach.SplitOnCapitalLetters();
+                                                    postfach = string.Format("%{0}%", postfach);
+
+                                                    string aktiv = "";
+
+                                                    //if (directoryName.Contains("-") && int.TryParse(directoryName.Substring(directoryName.LastIndexOf("-") + 1, directoryName.Length - directoryName.LastIndexOf("_") - 2), out int m))
+                                                    //{
+                                                    //    directoryName = directoryName.Replace(directoryName.Substring(directoryName.LastIndexOf("-"), directoryName.Length - directoryName.LastIndexOf("_") - 1), string.Empty);
+                                                    //}
+
+                                                    //get the aktiv folder to search
+                                                    if (strFolderName.Contains("-") && strFolderName.Substring(strFolderName.LastIndexOf("-")).ToLower().Trim().Contains("extern"))
+                                                    {
+                                                        aktiv = strFolderName.Substring(strFolderName.LastIndexOf("-") + 1);
+                                                    }
+                                                    else
+                                                    {
+                                                        aktiv = strFolderName.Substring(strFolderName.LastIndexOf("_") + 1);
+                                                    }
+
+                                                    aktiv = string.Format("%{0}%", aktiv);
+
+                                                    Console.Write("\n" + strFolderName + " Local Count: " + count);
+
+                                                    //get count from database
+                                                    var dbCount = GetDBUserCount(con, postfach, aktiv);
+
+                                                    //check if count of database and local value matches
+                                                    if (int.Parse(count) == int.Parse(dbCount))
+                                                    {
+
+                                                        Microsoft.Office.Interop.Excel.Range matchedCell = xlSheetRange.Cells[rowIndex, 31];
+                                                        string cellValue = "";
+
+                                                        //check if the cell is already populated, if it is populated append the value of the aktiv folder
+                                                        if (matchedCell.Value2 != null && !string.IsNullOrWhiteSpace(matchedCell.Value2.ToString()))
+                                                        {
+                                                            cellValue = matchedCell.Value2.ToString();
+
+                                                            if (strFolderName.Contains("Aktiv1"))
+                                                            {
+                                                                cellValue += ", Aktiv1";
+                                                            }
+                                                            else if (strFolderName.Contains("Aktiv2"))
+                                                            {
+                                                                cellValue += ", Aktiv2";
+                                                            }
+                                                            else if (strFolderName.Contains("Aktiv3"))
+                                                            {
+                                                                cellValue += ", Aktiv3";
+                                                            }
+                                                            else if (strFolderName.Contains("Aktiv4"))
+                                                            {
+                                                                cellValue += ", Aktiv4";
+                                                            }
+                                                            else if (strFolderName.Contains("Aktiv5"))
+                                                            {
+                                                                cellValue += ", Aktiv5";
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            if (strFolderName.Contains("Aktiv1"))
+                                                            {
+                                                                cellValue = "Aktiv1";
+                                                            }
+                                                            else if (strFolderName.Contains("Aktiv2"))
+                                                            {
+                                                                cellValue = "Aktiv2";
+                                                            }
+                                                            else if (strFolderName.Contains("Aktiv3"))
+                                                            {
+                                                                cellValue = "Aktiv3";
+                                                            }
+                                                            else if (strFolderName.Contains("Aktiv4"))
+                                                            {
+                                                                cellValue = "Aktiv4";
+                                                            }
+                                                            else if (strFolderName.Contains("Aktiv5"))
+                                                            {
+                                                                cellValue = "Aktiv5";
+                                                            }
+                                                        }
+
+                                                        AddLogs(LogFilePath + "\\", strFolderName + " Local Count: " + count + " DB Count: " + dbCount);
+                                                        xlSheetRange.Cells[rowIndex, 31] = cellValue;
+                                                    }
+                                                    else
+                                                    {
+                                                        sw.WriteLine(strFolderName + " Local Count: " + count + " DB Count: " + dbCount);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine("Error for user: " + username + " Please check logs at " + LogFilePath);
+                                    AddLogs(LogFilePath + "\\", "Username:- " + username + " " + ex.Message + " stacktrace:- " + ex.StackTrace);
+                                }
+                            }
+                            //else
+                            //{
+                            //    sw.WriteLine("Mismatch: " + strFolderName);
+                            //}
+                        }
+                    }
+                }
+                con.Close();
+                sw.Close();
+                xlWorkBook.Save();
+
+                //cleanup
+                xlWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+                xlWorkBook = null;
+                xlApp.Quit();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
+                Console.WriteLine("Done");
+            }
+            catch (MySqlException ex)
+            {
+                Console.WriteLine("Error: {0}", ex.ToString());
+                AddLogs(LogFilePath + "\\", "Error: " + ex.ToString());
+
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("\nThe Excel file cannot be accessed if it is open. Please close the excel file and try again");
+                AddLogs(LogFilePath + "\\", "The Excel file cannot be accessed if it is open. Please close the excel file and try again");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine("\nThe path of the excel file is not valid");
+                AddLogs(LogFilePath + "\\", "The path of the excel file is not valid");
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nError please check logs at " + LogFilePath);
+                AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of messages of the particular path for a given user
+        /// </summary>
+        /// <param name="con">mysql connection string</param>
+        /// <param name="name">name of the user</param>
+        /// <param name="path">path to search</param>
+        /// <returns></returns>
+        private string GetDBUserCount(MySqlConnection con, string name, string path)
+        {
+            //string constring = @"server=192.168.90.61;port=3321;User Id=alr;password=auW+2Dc.sAso;database=emailarchiv_test_final;CharacterSet=utf8;Convert Zero Datetime=True;Allow Zero Datetime=True;AllowUserVariables=True";
+
+            try
+            {
+                //using (MySqlConnection con = new MySqlConnection(constring))
+                //{
+                //string query = @"select count(*) from emailarchiv_test_final.emailarchiv_new where path like @Path;";
+                string query = @"select count(*) from emailarchiv_test_final.emailarchiv_new where Postfach like @Postfach and path like @Path;";
+
+                string count = null;
+                using (MySqlCommand cmd = new MySqlCommand(query, con))
+                {
+                    cmd.CommandType = CommandType.Text;
+                    cmd.Parameters.AddWithValue("@Postfach", name);
+                    cmd.Parameters.AddWithValue("@Path", path);
+                    //con.Open();
+                    object o = cmd.ExecuteScalar();
+                    if (o != null)
+                    {
+                        count = o.ToString();
+                        Console.WriteLine(" DB Count : {0}", count);
+                    }
+                    //con.Close();
+                    return count;
+                }
+                //}
+            }
+            catch (MySqlException ex)
+            {
+                Console.WriteLine("Error: {0}", ex.ToString());
+                AddLogs(LogFilePath + "\\", "Error: " + ex.ToString());
+                return string.Format("Error: {0}", ex.ToString());
+
             }
         }
     }
