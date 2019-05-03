@@ -21,5 +21,10 @@ namespace PstDataExtractionTools
                 return result + next;
             });
         }
+
+        public static int ToInt(this string inputString)
+        {
+            return int.Parse(inputString);
+        }
     }
 }

@@ -94,8 +94,8 @@ namespace PstDataExtractionTools
                     prog.DirectorySearch();
                     break;
                 case 7:
-                    Console.WriteLine("Add Folder name to Excel");
-                    prog.InitialLog.AppendLine("\nAdd Folder name to Excel");
+                    Console.WriteLine("Get user list from aktiv folder");
+                    prog.InitialLog.AppendLine("\nGet user list from aktiv folder");
                     prog.GetUserListFromAKtivFolder();
                     break;
                 case 8:
@@ -815,7 +815,7 @@ namespace PstDataExtractionTools
                     //    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
                     //}
 
-                    strFolderName += "-" + currentActivFolder;
+                    strFolderName += "_" + currentActivFolder;
 
                     int folderCounter = 0;
                     DirectoryInfo folderDirectory = new DirectoryInfo(folder);
@@ -1767,6 +1767,7 @@ namespace PstDataExtractionTools
                     Console.WriteLine("\nEnter path of pst folder");
                     FolderPath = Console.ReadLine();
                     LogFilePath = FolderPath;
+                    AddLogs(LogFilePath + "\\", InitialLog.ToString());
                     AddLogs(LogFilePath + "\\", "\nPath of pst folder: " + FolderPath);
                     if (string.IsNullOrEmpty(FolderPath))
                     {
@@ -1813,7 +1814,7 @@ namespace PstDataExtractionTools
                 MySqlConnection con = new MySqlConnection(constring);
                 con.Open();
 
-                StreamWriter sw = new StreamWriter(LogFilePath + string.Format("\\Mismatch{0}.txt", DateTime.Now.ToFileTime()), true, Encoding.UTF8);
+                StreamWriter sw = new StreamWriter(LogFilePath + "\\" + string.Format("Mismatch{0}.txt", DateTime.Now.ToFileTime()), true, Encoding.UTF8);
 
                 foreach (var folder in Directory.GetDirectories(FolderPath))
                 {
@@ -1878,101 +1879,104 @@ namespace PstDataExtractionTools
                                                 {
                                                     //take the string after the colon(:) to get message count
                                                     var strLine = line.Split(':');
-                                                    var count = strLine[1].Trim();
+                                                    var count = strLine[1].Trim().ToInt();
 
                                                     //AddLogs(LogFilePath + "\\", count);
 
-                                                    var postfach = username.Replace(",", string.Empty).Trim();
-                                                    //postfach.SplitOnCapitalLetters();
-                                                    postfach = string.Format("%{0}%", postfach);
-
-                                                    string aktiv = "";
-
-                                                    //if (directoryName.Contains("-") && int.TryParse(directoryName.Substring(directoryName.LastIndexOf("-") + 1, directoryName.Length - directoryName.LastIndexOf("_") - 2), out int m))
-                                                    //{
-                                                    //    directoryName = directoryName.Replace(directoryName.Substring(directoryName.LastIndexOf("-"), directoryName.Length - directoryName.LastIndexOf("_") - 1), string.Empty);
-                                                    //}
-
-                                                    //get the aktiv folder to search
-                                                    if (strFolderName.Contains("-") && strFolderName.Substring(strFolderName.LastIndexOf("-")).ToLower().Trim().Contains("extern"))
+                                                    if (count > 0)
                                                     {
-                                                        aktiv = strFolderName.Substring(strFolderName.LastIndexOf("-") + 1);
-                                                    }
-                                                    else
-                                                    {
-                                                        aktiv = strFolderName.Substring(strFolderName.LastIndexOf("_") + 1);
-                                                    }
+                                                        var postfach = username.Replace(",", string.Empty).Trim();
+                                                        //postfach.SplitOnCapitalLetters();
+                                                        postfach = string.Format("%{0}%", postfach);
 
-                                                    aktiv = string.Format("%{0}%", aktiv);
+                                                        string aktiv = "";
 
-                                                    Console.Write("\n" + strFolderName + " Local Count: " + count);
+                                                        //if (directoryName.Contains("-") && int.TryParse(directoryName.Substring(directoryName.LastIndexOf("-") + 1, directoryName.Length - directoryName.LastIndexOf("_") - 2), out int m))
+                                                        //{
+                                                        //    directoryName = directoryName.Replace(directoryName.Substring(directoryName.LastIndexOf("-"), directoryName.Length - directoryName.LastIndexOf("_") - 1), string.Empty);
+                                                        //}
 
-                                                    //get count from database
-                                                    var dbCount = GetDBUserCount(con, postfach, aktiv);
-
-                                                    //check if count of database and local value matches
-                                                    if (int.Parse(count) == int.Parse(dbCount))
-                                                    {
-
-                                                        Microsoft.Office.Interop.Excel.Range matchedCell = xlSheetRange.Cells[rowIndex, 31];
-                                                        string cellValue = "";
-
-                                                        //check if the cell is already populated, if it is populated append the value of the aktiv folder
-                                                        if (matchedCell.Value2 != null && !string.IsNullOrWhiteSpace(matchedCell.Value2.ToString()))
+                                                        //get the aktiv folder to search
+                                                        if (strFolderName.Contains("-") && strFolderName.Substring(strFolderName.LastIndexOf("-")).ToLower().Trim().Contains("extern"))
                                                         {
-                                                            cellValue = matchedCell.Value2.ToString();
-
-                                                            if (strFolderName.Contains("Aktiv1"))
-                                                            {
-                                                                cellValue += ", Aktiv1";
-                                                            }
-                                                            else if (strFolderName.Contains("Aktiv2"))
-                                                            {
-                                                                cellValue += ", Aktiv2";
-                                                            }
-                                                            else if (strFolderName.Contains("Aktiv3"))
-                                                            {
-                                                                cellValue += ", Aktiv3";
-                                                            }
-                                                            else if (strFolderName.Contains("Aktiv4"))
-                                                            {
-                                                                cellValue += ", Aktiv4";
-                                                            }
-                                                            else if (strFolderName.Contains("Aktiv5"))
-                                                            {
-                                                                cellValue += ", Aktiv5";
-                                                            }
+                                                            aktiv = strFolderName.Substring(strFolderName.LastIndexOf("-") + 1);
                                                         }
                                                         else
                                                         {
-                                                            if (strFolderName.Contains("Aktiv1"))
-                                                            {
-                                                                cellValue = "Aktiv1";
-                                                            }
-                                                            else if (strFolderName.Contains("Aktiv2"))
-                                                            {
-                                                                cellValue = "Aktiv2";
-                                                            }
-                                                            else if (strFolderName.Contains("Aktiv3"))
-                                                            {
-                                                                cellValue = "Aktiv3";
-                                                            }
-                                                            else if (strFolderName.Contains("Aktiv4"))
-                                                            {
-                                                                cellValue = "Aktiv4";
-                                                            }
-                                                            else if (strFolderName.Contains("Aktiv5"))
-                                                            {
-                                                                cellValue = "Aktiv5";
-                                                            }
+                                                            aktiv = strFolderName.Substring(strFolderName.LastIndexOf("_") + 1);
                                                         }
 
-                                                        AddLogs(LogFilePath + "\\", strFolderName + " Local Count: " + count + " DB Count: " + dbCount);
-                                                        xlSheetRange.Cells[rowIndex, 31] = cellValue;
-                                                    }
-                                                    else
-                                                    {
-                                                        sw.WriteLine(strFolderName + " Local Count: " + count + " DB Count: " + dbCount);
+                                                        aktiv = string.Format("%{0}%", aktiv);
+
+                                                        Console.Write("\n" + strFolderName + " Local Count: " + count);
+
+                                                        //get count from database
+                                                        var dbCount = GetDBUserCount(con, postfach, aktiv);
+
+                                                        //check if count of database and local value matches
+                                                        if (count == dbCount.ToInt())
+                                                        {
+
+                                                            Microsoft.Office.Interop.Excel.Range matchedCell = xlSheetRange.Cells[rowIndex, 31];
+                                                            string cellValue = "";
+
+                                                            //check if the cell is already populated, if it is populated append the value of the aktiv folder
+                                                            if (matchedCell.Value2 != null && !string.IsNullOrWhiteSpace(matchedCell.Value2.ToString()))
+                                                            {
+                                                                cellValue = matchedCell.Value2.ToString();
+
+                                                                if (strFolderName.Contains("Aktiv1"))
+                                                                {
+                                                                    cellValue += ", Aktiv1";
+                                                                }
+                                                                else if (strFolderName.Contains("Aktiv2"))
+                                                                {
+                                                                    cellValue += ", Aktiv2";
+                                                                }
+                                                                else if (strFolderName.Contains("Aktiv3"))
+                                                                {
+                                                                    cellValue += ", Aktiv3";
+                                                                }
+                                                                else if (strFolderName.Contains("Aktiv4"))
+                                                                {
+                                                                    cellValue += ", Aktiv4";
+                                                                }
+                                                                else if (strFolderName.Contains("Aktiv5"))
+                                                                {
+                                                                    cellValue += ", Aktiv5";
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                if (strFolderName.Contains("Aktiv1"))
+                                                                {
+                                                                    cellValue = "Aktiv1";
+                                                                }
+                                                                else if (strFolderName.Contains("Aktiv2"))
+                                                                {
+                                                                    cellValue = "Aktiv2";
+                                                                }
+                                                                else if (strFolderName.Contains("Aktiv3"))
+                                                                {
+                                                                    cellValue = "Aktiv3";
+                                                                }
+                                                                else if (strFolderName.Contains("Aktiv4"))
+                                                                {
+                                                                    cellValue = "Aktiv4";
+                                                                }
+                                                                else if (strFolderName.Contains("Aktiv5"))
+                                                                {
+                                                                    cellValue = "Aktiv5";
+                                                                }
+                                                            }
+
+                                                            AddLogs(LogFilePath + "\\", "\n" + strFolderName + " Local Count: " + count + " DB Count: " + dbCount);
+                                                            xlSheetRange.Cells[rowIndex, 31] = cellValue;
+                                                        }
+                                                        else
+                                                        {
+                                                            sw.WriteLine("\n" + strFolderName + " Local Count: " + count + " DB Count: " + dbCount);
+                                                        }
                                                     }
                                                 }
                                             }
