@@ -6,9 +6,11 @@ using System.Text;
 using System.Reflection;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
+using OfficeOpenXml;
 
 namespace PstDataExtractionTools
 {
+    [System.Runtime.InteropServices.Guid("C9AF260D-F666-41E5-BAC9-8699CC7020BE")]
     class Program
     {
         /*folder path of Aktiv1, Aktiv2, final copy destination and excel file*/
@@ -35,7 +37,7 @@ namespace PstDataExtractionTools
             //prog.WriteToExcel(@"D:\Sachith\TestUsers.xlsx");
             //prog.CombineUserList();
             //prog.GetSimilarNames();
-            //prog.UpdateExcelAktivStatus();
+            //prog.MarkUserMapping();
             prog.InitialLog = new StringBuilder();
 
             DateTime startTime = DateTime.Now;
@@ -54,7 +56,8 @@ namespace PstDataExtractionTools
                 "9) Delete file type from folder\n" +
                 "10) Update excel aktiv status\n" +
                 "11) Get DB User Count\n" +
-                "12) Exit\n");
+                "12) Generate CSV Customer Mapping\n" +
+                "13) Exit\n");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -119,6 +122,10 @@ namespace PstDataExtractionTools
                     prog.UpdateExcelMatchedColoumn();
                     break;
                 case 12:
+                    Console.WriteLine("Generate CSV Customer Mapping");
+                    prog.GenerateCSVCustomerMapping();
+                    break;
+                case 13:
                     Environment.Exit(0);
                     break;
                 default:
@@ -1550,43 +1557,43 @@ namespace PstDataExtractionTools
         /// </summary>
         private void GetSimilarNames()
         {
-            //string completeUsersFilePath = @"C:\Users\s.poojary\Desktop\TotalUserList.txt";
-            //string duplicateUsersFilePath = @"C:\Users\s.poojary\Desktop\DuplicateUsers.txt";
+            string completeUsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv1Users.txt";
+            string duplicateUsersFilePath = @"C:\Users\s.poojary\Desktop\DuplicateUsers2.txt";
 
-            //path of folder to search
-            string completeUsersFilePath;
-            //extension of file type that is to be deleted
-            string duplicateUsersFilePath;
-            try
-            {
+            ////path of folder to search
+            //string completeUsersFilePath;
+            ////extension of file type that is to be deleted
+            //string duplicateUsersFilePath;
+            //try
+            //{
 
-                Console.WriteLine("\nEnter path of UserList text file");
-                completeUsersFilePath = Console.ReadLine();
-                //InitialLog.AppendLine("\nFolder path: " + completeUsersFilePath);
-                if (string.IsNullOrEmpty(completeUsersFilePath))
-                {
-                    throw new InvalidFilePathException("Please enter valid folder path\n");
-                }
+            //    Console.WriteLine("\nEnter path of UserList text file");
+            //    completeUsersFilePath = Console.ReadLine();
+            //    //InitialLog.AppendLine("\nFolder path: " + completeUsersFilePath);
+            //    if (string.IsNullOrEmpty(completeUsersFilePath))
+            //    {
+            //        throw new InvalidFilePathException("Please enter valid folder path\n");
+            //    }
 
-                Console.WriteLine("\nEnter path of duplicate users text file");
-                duplicateUsersFilePath = Console.ReadLine();
-                //InitialLog.AppendLine("\nExtension Type: " + duplicateUsersFilePath);
-                if (string.IsNullOrEmpty(duplicateUsersFilePath))
-                {
-                    throw new InvalidFilePathException("Please enter valid file extension\n");
-                }
-            }
-            catch (InvalidFilePathException ex)
-            {
-                Console.WriteLine(ex.Message);
-                //AddLogs(LogFilePath + "\\", ex.Message);
-                return;
-            }
+            //    Console.WriteLine("\nEnter path of duplicate users text file");
+            //    duplicateUsersFilePath = Console.ReadLine();
+            //    //InitialLog.AppendLine("\nExtension Type: " + duplicateUsersFilePath);
+            //    if (string.IsNullOrEmpty(duplicateUsersFilePath))
+            //    {
+            //        throw new InvalidFilePathException("Please enter valid file extension\n");
+            //    }
+            //}
+            //catch (InvalidFilePathException ex)
+            //{
+            //    Console.WriteLine(ex.Message);
+            //    //AddLogs(LogFilePath + "\\", ex.Message);
+            //    return;
+            //}
 
             var lstCompleteUsers = File.ReadLines(completeUsersFilePath, Encoding.UTF8);
 
             //remove space, comma and hyphen(-) from the names
-            var lstSanitizedUsers = lstCompleteUsers.Select(x => x.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty)).ToList();
+            var lstSanitizedUsers = lstCompleteUsers.Select(x => x.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty)).ToList();
 
             //get duplicate names from the list
             var lstDuplicates = lstSanitizedUsers.GroupBy(x => x).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
@@ -2081,6 +2088,466 @@ namespace PstDataExtractionTools
                 AddLogs(LogFilePath + "\\", "Error: " + ex.ToString());
                 return string.Format("Error: {0}", ex.ToString());
 
+            }
+        }
+
+        /// <summary>
+        /// Generate CSV for Customer which conatins user Id, email, name etc.
+        /// </summary>
+        private void GenerateCSVCustomerMapping()
+        {
+
+            try
+            {
+                var SourceExcelFilePath = @"C:\Users\s.poojary\Desktop\EmailArcheve_FinalList.xlsx";
+                var UserNameExcelSheet = @"C:\Users\s.poojary\Desktop\NordLB_exchange_User_for_mapping_FINAL.xlsx";
+                var EmailIdExcelSheet = @"C:\Users\s.poojary\Desktop\Export Archive_28.2.2019_2.xlsx";
+                var DestinationExcelSheet = @"C:\Users\s.poojary\Desktop\Aktiv1-5Users.xlsx";
+
+                //InitialLog = new StringBuilder();
+                //AddLogs(LogFilePath + "\\", "\nSource Excel file path: " + SourceExcelFilePath);
+                //AddLogs(LogFilePath + "\\", "\nDestination Excel file path: " + UserNameExcelSheet);
+
+                #region source excel sheet setup
+                Microsoft.Office.Interop.Excel.Application xlSourceApp;
+                Microsoft.Office.Interop.Excel.Workbook xlSourceWorkBook;
+                Microsoft.Office.Interop.Excel.Worksheet xlSourceWorkSheet;
+                Microsoft.Office.Interop.Excel.Sheets xlSourceBigSheet;
+                Microsoft.Office.Interop.Excel.Range xlSourceSheetRange;
+
+                xlSourceApp = new Microsoft.Office.Interop.Excel.Application();
+                //sets whether the excel file will be open during this process
+                xlSourceApp.Visible = false;
+                //open the excel file
+                xlSourceWorkBook = xlSourceApp.Workbooks.Open(SourceExcelFilePath, 0,
+                            false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
+                             "", true, false, 0, true, false, false);
+
+                //get all the worksheets in the excel  file
+                xlSourceBigSheet = xlSourceWorkBook.Worksheets;
+
+                string xlSourceSheetName = "Sheet1";
+
+                //get the specified worksheet
+                xlSourceWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlSourceBigSheet.get_Item(xlSourceSheetName);
+
+                xlSourceSheetRange = xlSourceWorkSheet.UsedRange;
+
+                int sourceColCount = xlSourceSheetRange.Columns.Count;
+                int sourceRowCount = xlSourceSheetRange.Rows.Count;
+                #endregion
+
+                #region username sheet setup
+                Microsoft.Office.Interop.Excel.Application xlUserNameApp;
+                Microsoft.Office.Interop.Excel.Workbook xlUserNameWorkBook;
+                Microsoft.Office.Interop.Excel.Worksheet xlUserNameWorkSheet;
+                Microsoft.Office.Interop.Excel.Sheets xlUserNameBigSheet;
+                Microsoft.Office.Interop.Excel.Range xlUserNameSheetRange;
+
+                xlUserNameApp = new Microsoft.Office.Interop.Excel.Application();
+                //sets whether the excel file will be open during this process
+                xlUserNameApp.Visible = false;
+                //open the excel file
+                xlUserNameWorkBook = xlUserNameApp.Workbooks.Open(UserNameExcelSheet, 0,
+                            false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
+                             "", true, false, 0, true, false, false);
+
+                //get all the worksheets in the excel  file
+                xlUserNameBigSheet = xlUserNameWorkBook.Worksheets;
+
+                string xlUserNameSheetName = "Tabelle1";
+
+                //get the specified worksheet
+                xlUserNameWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlUserNameBigSheet.get_Item(xlUserNameSheetName);
+
+                xlUserNameSheetRange = xlUserNameWorkSheet.UsedRange;
+
+                int UserNameColCount = xlUserNameSheetRange.Columns.Count;
+                int UserNameRowCount = xlUserNameSheetRange.Rows.Count;
+                #endregion
+
+                #region emailid sheet setup
+                Microsoft.Office.Interop.Excel.Application xlEmailIdApp;
+                Microsoft.Office.Interop.Excel.Workbook xlEmailIdWorkBook;
+                Microsoft.Office.Interop.Excel.Worksheet xlEmailIdWorkSheet;
+                Microsoft.Office.Interop.Excel.Sheets xlEmailIdBigSheet;
+                Microsoft.Office.Interop.Excel.Range xlEmailIdSheetRange;
+
+                xlEmailIdApp = new Microsoft.Office.Interop.Excel.Application();
+                //sets whether the excel file will be open during this process
+                xlEmailIdApp.Visible = false;
+                //open the excel file
+                xlEmailIdWorkBook = xlEmailIdApp.Workbooks.Open(EmailIdExcelSheet, 0,
+                            false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
+                             "", true, false, 0, true, false, false);
+
+                //get all the worksheets in the excel  file
+                xlEmailIdBigSheet = xlEmailIdWorkBook.Worksheets;
+
+                string xlEmailIdSheetName = "Postfächer";
+
+                //get the specified worksheet
+                xlEmailIdWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlEmailIdBigSheet.get_Item(xlEmailIdSheetName);
+
+                xlEmailIdSheetRange = xlEmailIdWorkSheet.UsedRange;
+
+                int EmailIdColCount = xlEmailIdSheetRange.Columns.Count;
+                int EmailIdRowCount = xlEmailIdSheetRange.Rows.Count;
+                #endregion
+
+                #region destination sheet setup
+                Microsoft.Office.Interop.Excel.Application xlDestinationApp;
+                Microsoft.Office.Interop.Excel.Workbook xlDestinationWorkBook;
+                Microsoft.Office.Interop.Excel.Worksheet xlDestinationWorkSheet;
+                Microsoft.Office.Interop.Excel.Sheets xlDestinationBigSheet;
+                Microsoft.Office.Interop.Excel.Range xlDestinationSheetRange;
+
+                xlDestinationApp = new Microsoft.Office.Interop.Excel.Application();
+                //sets whether the excel file will be open during this process
+                xlDestinationApp.Visible = false;
+                //open the excel file
+                xlDestinationWorkBook = xlDestinationApp.Workbooks.Open(DestinationExcelSheet, 0,
+                            false, 5, "", "", false, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows,
+                             "", true, false, 0, true, false, false);
+
+                //get all the worksheets in the excel  file
+                xlDestinationBigSheet = xlDestinationWorkBook.Worksheets;
+
+                string xlDestinationSheetName = "Sheet1";
+
+                //get the specified worksheet
+                xlDestinationWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlDestinationBigSheet.get_Item(xlDestinationSheetName);
+
+                xlDestinationSheetRange = xlDestinationWorkSheet.UsedRange;
+
+                int destinationColCount = xlDestinationSheetRange.Columns.Count;
+                int destinationRowCount = xlDestinationSheetRange.Rows.Count;
+                #endregion
+
+                //iterate the rows
+                for (int sourceRowIndex = 1; sourceRowIndex <= sourceRowCount; sourceRowIndex++)
+                {
+                    Microsoft.Office.Interop.Excel.Range nameCell = xlSourceSheetRange.Cells[sourceRowIndex, 1];
+                    if (nameCell.Value2 != null && !string.IsNullOrWhiteSpace(nameCell.Value2.ToString()))
+                    {
+                        string sourceCSV = nameCell.Value2.ToString();
+                        var csv = sourceCSV.Split(';');
+
+                        csv[0] = string.Empty;
+                        csv[1] = string.Empty;
+
+                        string id = null;
+
+                        var arrUserName = csv[3].Split(' ');
+                        var username = string.Join(", ", arrUserName);
+
+                        bool isUserIdFound = false;
+                        for (int userNameRowIndex = 1; userNameRowIndex <= UserNameRowCount; userNameRowIndex++)
+                        {
+                            Microsoft.Office.Interop.Excel.Range cell = xlUserNameSheetRange.Cells[userNameRowIndex, 3];
+                            if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("ArchivName"))
+                            {
+                                string IdUserName = cell.Value2.ToString();
+
+                                if (username.ToLower().Trim().Equals(IdUserName.ToLower().Trim()) || ( username.ToLower().Trim().Contains(IdUserName.ToLower().Trim()) || IdUserName.ToLower().Trim().Contains(username.ToLower().Trim()) ) )
+                                {
+                                    isUserIdFound = true;
+                                    Microsoft.Office.Interop.Excel.Range cellUserId = xlUserNameSheetRange.Cells[userNameRowIndex, 2];
+                                    string userId = cellUserId.Value2.ToString();
+
+                                    //xlUserNameSheetRange.Cells[userNameRowIndex, 9] = xlSourceSheetRange[sourceRowIndex, 3];
+                                    csv[0] = userId;
+                                    id = userId;
+                                    xlSourceSheetRange.Cells[sourceRowIndex, 1] = string.Join(";", csv);
+                                }
+
+                            }
+                        }
+                        if (!isUserIdFound)
+                        {
+                            xlSourceSheetRange.Cells[sourceRowIndex, 2] = "User Id not found";
+                        }
+
+                        bool isEmailFound = false;
+                        for (int EmailIdRowIndex = 1; EmailIdRowIndex <= EmailIdRowCount; EmailIdRowIndex++)
+                        {
+                            Microsoft.Office.Interop.Excel.Range cell = xlEmailIdSheetRange.Cells[EmailIdRowIndex, 9];
+                            if (cell.Value2 != null && !string.IsNullOrWhiteSpace(cell.Value2.ToString()) && !cell.Value2.ToString().Trim().Equals("ArchivName"))
+                            {
+                                string EmailIdName = cell.Value2.ToString();
+
+                                if (username.ToLower().Trim().Equals(EmailIdName.ToLower().Trim()) || (username.ToLower().Trim().Contains(EmailIdName.ToLower().Trim()) || EmailIdName.ToLower().Trim().Contains(username.ToLower().Trim()) ) )
+                                {
+                                    isEmailFound = true;
+                                    Microsoft.Office.Interop.Excel.Range cellEmailId = xlEmailIdSheetRange.Cells[EmailIdRowIndex, 2];
+                                    string emailId = cellEmailId.Value2.ToString();
+
+                                    csv[1] = emailId;
+                                    xlSourceSheetRange.Cells[sourceRowIndex, 1] = string.Join(";", csv);
+                                    //xlEmailIdSheetRange.Cells[EmailIdRowIndex, 9] = xlSourceSheetRange[sourceRowIndex, 3];
+                                }
+
+                            }
+                        }
+                        if (!isEmailFound)
+                        {
+                            xlSourceSheetRange.Cells[sourceRowIndex, 3] = "Email ID not found";
+                        }
+                        Console.WriteLine(string.Join(";", csv));
+
+                        if(!isUserIdFound && !isEmailFound)
+                        {
+                            xlSourceSheetRange.Cells[sourceRowIndex, 1] = string.Join(";", csv);
+                        }
+
+                        //Console.WriteLine(sourceRowIndex);
+                        //JobCount++;
+                        //AddLogs(LogFilePath + "\\", "\n" + sourceRowIndex.ToString());
+                    }
+                }
+
+                xlSourceWorkBook.Save();
+                xlDestinationWorkBook.Save();
+
+                //cleanup
+                xlSourceWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+                xlSourceWorkBook = null;
+                xlSourceApp.Quit();
+
+                xlUserNameWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+                xlUserNameWorkBook = null;
+                xlUserNameApp.Quit();
+
+                xlEmailIdWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+                xlEmailIdWorkBook = null;
+                xlEmailIdApp.Quit();
+
+                xlDestinationWorkBook.Close(Missing.Value, Missing.Value, Missing.Value);
+                xlDestinationWorkBook = null;
+                xlDestinationApp.Quit();
+
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
+                Console.WriteLine("Done");
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("\nThe Excel file cannot be accessed if it is open. Please close the excel file and try again");
+                AddLogs(LogFilePath + "\\", "The Excel file cannot be accessed if it is open. Please close the excel file and try again");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine("\nThe path of the excel file is not valid");
+                AddLogs(LogFilePath + "\\", "The path of the excel file is not valid");
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nError please check logs at " + LogFilePath);
+                AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
+            }
+        }
+
+        /// <summary>
+        /// The mismatched users from the Customer csv when compared to the main excel sheet
+        /// </summary>
+        private void GetCSVMismatchedUsers()
+        {
+            string aktivUsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv1Users.txt";
+            string userListFilePath = @"C:\Users\s.poojary\Desktop\NewListUsers.txt";
+            string mismatchUsersFilePath = @"C:\Users\s.poojary\Desktop\MismatchUsers.txt";
+            string mismatchUsersDBFilePath = @"C:\Users\s.poojary\Desktop\MismatchDB.txt";
+
+            Dictionary<string, string> dictAktiv1 = new Dictionary<string, string>();
+            Dictionary<string, string> dictUserList = new Dictionary<string, string>();
+
+            var lstAktivUsers = File.ReadLines(aktivUsersFilePath, Encoding.UTF8);
+            var lstUserList = File.ReadLines(userListFilePath, Encoding.UTF8);
+
+            //remove space, comma and hyphen(-) from the names
+            //var lstSanitizedCsvUsers = lstCsvUsers.Select(x => x.Split(';')[3].Split(' ').Join(", ", x)).ToList();
+
+            var lstSanitizedAktivUsers = lstAktivUsers.Select(x => x.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty)).ToList();
+            var lstSanitizedUsers = lstUserList.Select(x => x.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty)).ToList();
+
+            for (int i = 0; i < lstAktivUsers.Count(); i++)
+            {
+                dictAktiv1.Add(lstSanitizedAktivUsers[i], lstAktivUsers.ElementAt(i));
+            }
+
+            for (int i = 0; i < lstUserList.Count(); i++)
+            {
+                dictUserList.Add(lstSanitizedUsers[i], lstUserList.ElementAt(i));
+            }
+            //for (int i = 0; i<lstCsvUsers.Count(); i++)
+            //{
+            //    var csv = lstCsvUsers[i].Split(';');
+
+            //    csv[0] = string.Empty;
+            //    csv[1] = string.Empty;
+
+            //    var arrUserName = csv[3].Split(' ');
+            //    var username = string.Join(", ", arrUserName);
+
+            //    lstCsvUsers[i] = username;
+
+            //}
+
+            var lstMismatchUsers = lstSanitizedUsers.Except(lstSanitizedAktivUsers);
+            var lstMismatchUsersDB = lstSanitizedAktivUsers.Except(lstSanitizedUsers);
+
+            //get duplicate names from the list
+            //var lstMismatchUserList = lstSanitizedCsvUsers.GroupBy(x => x).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
+
+            File.WriteAllLines(mismatchUsersFilePath, lstMismatchUsers);
+            File.WriteAllLines(mismatchUsersDBFilePath, lstMismatchUsersDB);
+        }
+
+        /// <summary>
+        /// Generate an excel file which contains archive name and status which is copied from main excel sheet
+        /// </summary>
+        private void GenerateUserListExcel()
+        {
+            try
+            {
+                var DestinationExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\MailBoxUsers.xlsx");
+                using (var excelPackage = new ExcelPackage(DestinationExcelSheet))
+                {
+                    var extractedWorkSheet = excelPackage.Workbook.Worksheets["extracted4"];
+                    var aktivWorkSheet = excelPackage.Workbook.Worksheets["Aktiv4"];
+                    var destinationWorkSheet = excelPackage.Workbook.Worksheets["Aktiv4Users"];
+
+                    int destinationSheetRowCounter = 1;
+
+                    //loop all rows
+                    for (int mailboxRowIndex = aktivWorkSheet.Dimension.Start.Row; mailboxRowIndex <= aktivWorkSheet.Dimension.End.Row; mailboxRowIndex++)
+                    {
+                        var mailboxUsername = aktivWorkSheet.Cells[mailboxRowIndex, 8].Value.ToString().Trim();
+
+                        bool isUserFound = false;
+                        for (int extractedRowIndex = extractedWorkSheet.Dimension.Start.Row; extractedRowIndex <= extractedWorkSheet.Dimension.End.Row; extractedRowIndex++)
+                        {
+                            var extractedUsername = extractedWorkSheet.Cells[extractedRowIndex, 2].Value.ToString().Trim();
+
+                            var sanitizedMailboxName = mailboxUsername.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty);
+                            var sanitizedExtractedName = extractedUsername.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty);
+
+                            if (sanitizedMailboxName.Contains(sanitizedExtractedName) || sanitizedExtractedName.Contains(sanitizedMailboxName))
+                            {
+                                isUserFound = true;
+                                destinationWorkSheet.Cells[destinationSheetRowCounter, 1].Value = mailboxUsername;
+                                destinationWorkSheet.Cells[destinationSheetRowCounter, 2].Value = extractedWorkSheet.GetValue(extractedRowIndex, 3);
+
+                                destinationSheetRowCounter++;
+                            }
+
+                        }
+
+                        Console.WriteLine(mailboxRowIndex);
+
+                        if (!isUserFound)
+                        {
+                            destinationWorkSheet.Cells[destinationSheetRowCounter, 1].Value = mailboxUsername;
+                            destinationWorkSheet.Cells[destinationSheetRowCounter, 2].Value = "Not Found in Extracted Sheet";
+
+                            destinationSheetRowCounter++;
+                        }
+                    }
+
+                    excelPackage.Save();
+
+                    Console.WriteLine("Done");
+                }
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("\nThe Excel file cannot be accessed if it is open. Please close the excel file and try again");
+                AddLogs(LogFilePath + "\\", "The Excel file cannot be accessed if it is open. Please close the excel file and try again");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine("\nThe path of the excel file is not valid");
+                AddLogs(LogFilePath + "\\", "The path of the excel file is not valid");
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nError please check logs at " + LogFilePath);
+                AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
+            }
+        }
+
+        /// <summary>
+        /// Mark the users who are present in the user mapping excel sheet
+        /// </summary>
+        private void MarkUserMapping()
+        {
+            try
+            {
+                var DestinationExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\MailBoxUsersAktiv1-4.xlsx");
+                using (var excelPackage = new ExcelPackage(DestinationExcelSheet))
+                {
+                    var userMappingWorkSheet = excelPackage.Workbook.Worksheets["Tabelle1"];
+                    var aktivWorkSheet = excelPackage.Workbook.Worksheets["Aktiv2Users"];
+
+                    //loop all rows
+                    for (int aktivRowIndex = aktivWorkSheet.Dimension.Start.Row; aktivRowIndex <= aktivWorkSheet.Dimension.End.Row; aktivRowIndex++)
+                    {
+                        var aktivUsername = aktivWorkSheet.Cells[aktivRowIndex, 1].Value.ToString().Trim();
+
+                        for (int userMappingRowIndex = userMappingWorkSheet.Dimension.Start.Row; userMappingRowIndex <= userMappingWorkSheet.Dimension.End.Row; userMappingRowIndex++)
+                        {
+                            var userMappingUsername = userMappingWorkSheet.Cells[userMappingRowIndex, 3].Value.ToString().Trim();
+
+                            var sanitizedAktivName = aktivUsername.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty);
+                            var sanitizedUserMappingName = userMappingUsername.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty);
+
+                            if (sanitizedAktivName.Contains(sanitizedUserMappingName) || sanitizedUserMappingName.Contains(sanitizedAktivName))
+                            {
+                                aktivWorkSheet.Row(aktivRowIndex).Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                                aktivWorkSheet.Row(aktivRowIndex).Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
+                            }
+
+                        }
+
+                        Console.WriteLine(aktivRowIndex);
+                    }
+
+                    excelPackage.Save();
+
+                    Console.WriteLine("Done");
+                }
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("\nThe Excel file cannot be accessed if it is open. Please close the excel file and try again");
+                AddLogs(LogFilePath + "\\", "The Excel file cannot be accessed if it is open. Please close the excel file and try again");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine("\nThe path of the excel file is not valid");
+                AddLogs(LogFilePath + "\\", "The path of the excel file is not valid");
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nError please check logs at " + LogFilePath);
+                AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
             }
         }
     }
