@@ -58,7 +58,8 @@ namespace PstDataExtractionTools
                 "11) Get DB User Count\n" +
                 "12) Generate CSV Customer Mapping\n" +
                 "13) Generate User Status Excel\n" +
-                "14) Exit\n");
+                "14) Generate Excel Sheet for AKtiv users\n" +
+                "15) Exit\n");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -131,6 +132,10 @@ namespace PstDataExtractionTools
                     prog.GenerateUserListStatusExcel();
                     break;
                 case 14:
+                    Console.WriteLine("Generate Excel Sheet for AKtiv users");
+                    prog.CreateAktivExcelSheet();
+                    break;
+                case 15:
                     Environment.Exit(0);
                     break;
                 default:
@@ -1521,8 +1526,8 @@ namespace PstDataExtractionTools
         /// </summary>
         private void GetSimilarNames()
         {
-            string completeUsersFilePath = @"C:\Users\s.poojary\Desktop\Aktiv1Users.txt";
-            string duplicateUsersFilePath = @"C:\Users\s.poojary\Desktop\DuplicateUsers2.txt";
+            string completeUsersFilePath = @"C:\Users\s.poojary\Desktop\Users.txt";
+            string duplicateUsersFilePath = @"C:\Users\s.poojary\Desktop\DuplicateUsers3.txt";
 
             ////path of folder to search
             //string completeUsersFilePath;
@@ -1557,7 +1562,7 @@ namespace PstDataExtractionTools
             var lstCompleteUsers = File.ReadLines(completeUsersFilePath, Encoding.UTF8);
 
             //remove space, comma and hyphen(-) from the names
-            var lstSanitizedUsers = lstCompleteUsers.Select(x => x.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty)).ToList();
+            var lstSanitizedUsers = lstCompleteUsers.Select(x => x.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant()).ToList();
 
             //get duplicate names from the list
             var lstDuplicates = lstSanitizedUsers.GroupBy(x => x).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
@@ -1996,8 +2001,8 @@ namespace PstDataExtractionTools
             {
                 var SourceExcelFilePath = new FileInfo(@"C:\Users\s.poojary\Desktop\EmailArcheve_FinalList.xlsx");
                 var UserNameExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\NordLB_exchange_User_for_mapping_FINAL.xlsx");
-                var EmailIdExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\Export Archive_28.2.2019_2.xlsx");
-                //var DestinationExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\Aktiv1-5Users.xlsx");
+                var EmailIdExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\Export Archive_28.2.2019_2(1).xlsx");
+                var DestinationExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\csv.xlsx");
 
                 //InitialLog = new StringBuilder();
                 //AddLogs(LogFilePath + "\\", "\nSource Excel file path: " + SourceExcelFilePath);
@@ -2006,14 +2011,17 @@ namespace PstDataExtractionTools
                 var sourcePackage = new ExcelPackage(SourceExcelFilePath);
                 var UserNamePackage = new ExcelPackage(UserNameExcelSheet);
                 var EmailIdPackage = new ExcelPackage(EmailIdExcelSheet);
-                //var DestinationPackage = new ExcelPackage(DestinationExcelSheet);
+                var DestinationPackage = new ExcelPackage(DestinationExcelSheet);
 
-                var sourceWorkSheet = sourcePackage.Workbook.Worksheets["Sheet1"];
+                var sourceWorkSheet = UserNamePackage.Workbook.Worksheets["Sheet1"];
                 var userNameWorkSheet = UserNamePackage.Workbook.Worksheets["Tabelle1"];
                 var emailIdWorkSheet = EmailIdPackage.Workbook.Worksheets["Postfächer"];
-                //var destinationWorkSheet = DestinationPackage.Workbook.Worksheets["Sheet1"];
+                var destinationWorkSheet = DestinationPackage.Workbook.Worksheets["Sheet2"];
 
                 //iterate the rows
+                int destinationRowIndex = 1;
+                #region for completing csv(ie generating csv from an incomplete csv)
+                /*
                 for (int sourceRowIndex = 1; sourceRowIndex <= sourceWorkSheet.Dimension.End.Row; sourceRowIndex++)
                 {
                     var sourceCSV = sourceWorkSheet.Cells[sourceRowIndex, 1].Value.ToString().Trim();
@@ -2029,6 +2037,7 @@ namespace PstDataExtractionTools
                         //get the username and add a comma after first name
                         var arrUserName = csv[3].Split(' ');
                         var username = string.Join(", ", arrUserName);
+                        var sanitizedUsername = username.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
 
                         bool isUserIdFound = false;
                         for (int userNameRowIndex = 1; userNameRowIndex <= userNameWorkSheet.Dimension.End.Row; userNameRowIndex++)
@@ -2036,7 +2045,8 @@ namespace PstDataExtractionTools
                             var IdUserName = userNameWorkSheet.Cells[userNameRowIndex, 1].Value.ToString().Trim();
                             if (!string.IsNullOrWhiteSpace(IdUserName) && !IdUserName.Equals("ArchivName"))
                             {
-                                if (username.ToLower().Trim().Equals(IdUserName.ToLower()) || (username.ToLower().Trim().Contains(IdUserName.ToLower()) || IdUserName.ToLower().Contains(username.ToLower().Trim()) ) )
+                                var sanitizedIdUserName = IdUserName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+                                if ((sanitizedUsername.ToLower().Trim().Equals(sanitizedIdUserName.ToLower()) || sanitizedUsername.ToLower().Trim().Contains(sanitizedIdUserName.ToLower()) || sanitizedIdUserName.ToLower().Contains(sanitizedUsername.ToLower().Trim())) && userNameWorkSheet.Cells[userNameRowIndex, 2].Value != null)
                                 {
                                     isUserIdFound = true;
                                     string userId = userNameWorkSheet.Cells[userNameRowIndex, 2].Value.ToString().Trim();
@@ -2044,14 +2054,9 @@ namespace PstDataExtractionTools
                                     //if the names match then add the id to the csv array
                                     csv[0] = userId;
                                     //write the csv to the excel sheet
-                                    sourceWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
+                                    //sourceWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
                                 }
-
                             }
-                        }
-                        if (!isUserIdFound)
-                        {
-                            sourceWorkSheet.Cells[sourceRowIndex, 2].Value = "User Id not found";
                         }
 
                         bool isEmailFound = false;
@@ -2060,7 +2065,8 @@ namespace PstDataExtractionTools
                             var EmailIdName = emailIdWorkSheet.Cells[EmailIdRowIndex, 9].Value.ToString().Trim();
                             if (!string.IsNullOrWhiteSpace(EmailIdName.ToString()) && !EmailIdName.ToString().Trim().Equals("ArchivName"))
                             {
-                                if (username.ToLower().Trim().Equals(EmailIdName.ToLower()) || (username.ToLower().Trim().Contains(EmailIdName.ToLower()) || EmailIdName.ToLower().Contains(username.ToLower().Trim()) ) )
+                                var sanitizedEmailIdName = EmailIdName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+                                if ((sanitizedUsername.ToLower().Trim().Equals(sanitizedEmailIdName.ToLower()) || sanitizedUsername.ToLower().Trim().Contains(sanitizedEmailIdName.ToLower()) || sanitizedEmailIdName.ToLower().Contains(sanitizedUsername.ToLower().Trim())) && emailIdWorkSheet.Cells[EmailIdRowIndex, 2].Value != null)
                                 {
                                     isEmailFound = true;
                                     string emailId = emailIdWorkSheet.Cells[EmailIdRowIndex, 2].Value.ToString().Trim();
@@ -2068,21 +2074,180 @@ namespace PstDataExtractionTools
                                     //if the names match then add the email id to the csv array
                                     csv[1] = emailId;
                                     //write the csv to the excel sheet
-                                    sourceWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
+                                    //sourceWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
                                 }
 
                             }
                         }
-                        if (!isEmailFound)
+
+                        var Ids = csv[0].Split(',');
+                        if (Ids.Length > 1)
                         {
-                            sourceWorkSheet.Cells[sourceRowIndex, 3].Value = "Email ID not found";
+                            foreach (string id in Ids)
+                            {
+                                string[] newCsv = csv;
+                                newCsv[0] = id.Trim();
+                                destinationWorkSheet.Cells[destinationRowIndex, 1].Value = string.Join(";", newCsv);
+
+                                if (!isEmailFound)
+                                {
+                                    destinationWorkSheet.Cells[destinationRowIndex, 3].Value = "Email ID not found";
+                                }
+
+                                destinationRowIndex++;
+                            }
                         }
+                        else
+                        {
+                            destinationWorkSheet.Cells[destinationRowIndex, 1].Value = string.Join(";", csv);
+
+                            if (!isUserIdFound)
+                            {
+                                destinationWorkSheet.Cells[destinationRowIndex, 2].Value = "User Id not found";
+                            }
+
+                            if (!isEmailFound)
+                            {
+                                destinationWorkSheet.Cells[destinationRowIndex, 3].Value = "Email ID not found";
+                            }
+
+                            destinationRowIndex++;
+                        }
+
+                        //sourceWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
+
+
+                        // if (!isUserIdFound)
+                        // {
+                        //     sourceWorkSheet.Cells[sourceRowIndex, 2].Value = "User Id not found";
+                        // }
+
+                        // if (!isEmailFound)
+                        // {
+                        //     sourceWorkSheet.Cells[sourceRowIndex, 3].Value = "Email ID not found";
+                        // }
+
+                        // if (!isUserIdFound && !isEmailFound)
+                        // {
+                        //     sourceWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
+                        // }
+
+                        Console.WriteLine(string.Join(";", csv));
+                        //Console.WriteLine(sourceRowIndex);
+                        //JobCount++;
+                        //AddLogs(LogFilePath + "\\", "\n" + sourceRowIndex.ToString());
+                    }
+                }
+                */
+                #endregion
+
+                for (int sourceRowIndex = 1; sourceRowIndex <= sourceWorkSheet.Dimension.End.Row; sourceRowIndex++)
+                {
+                    var username = sourceWorkSheet.Cells[sourceRowIndex, 2].Value.ToString().Trim();
+                    if (!string.IsNullOrWhiteSpace(username) && !username.Equals("Users"))
+                    {
+                        string[] csv = new string[4];
+                        csv[0] = "";
+                        csv[1] = "";
+                        csv[2] = "emailarchiv_new";
+                        csv[3] = username;
+                        var sanitizedUsername = username.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+
+                        bool isUserIdFound = false;
+                        for (int userNameRowIndex = 1; userNameRowIndex <= userNameWorkSheet.Dimension.End.Row; userNameRowIndex++)
+                        {
+                            var IdUserName = userNameWorkSheet.Cells[userNameRowIndex, 3].Value.ToString().Trim();
+                            if (!string.IsNullOrWhiteSpace(IdUserName) && !IdUserName.Equals("ArchivName"))
+                            {
+                                var sanitizedIdUserName = IdUserName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+                                if ((sanitizedUsername.ToLower().Trim().Equals(sanitizedIdUserName.ToLower()) || sanitizedUsername.ToLower().Trim().Contains(sanitizedIdUserName.ToLower()) || sanitizedIdUserName.ToLower().Contains(sanitizedUsername.ToLower().Trim())) && userNameWorkSheet.Cells[userNameRowIndex, 2].Value != null)
+                                {
+                                    isUserIdFound = true;
+                                    string userId = userNameWorkSheet.Cells[userNameRowIndex, 2].Value.ToString().Trim();
+
+                                    //if the names match then add the id to the csv array
+                                    csv[0] = userId;
+                                    //write the csv to the excel sheet
+                                    //destinationWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
+                                }
+
+                            }
+                        }
+
+                        bool isEmailFound = false;
+                        for (int EmailIdRowIndex = 1; EmailIdRowIndex <= emailIdWorkSheet.Dimension.End.Row; EmailIdRowIndex++)
+                        {
+                            var EmailIdName = emailIdWorkSheet.Cells[EmailIdRowIndex, 9].Value.ToString().Trim();
+                            if (!string.IsNullOrWhiteSpace(EmailIdName.ToString()) && !EmailIdName.ToString().Trim().Equals("ArchivName"))
+                            {
+                                var sanitizedEmailIdName = EmailIdName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+                                if ((sanitizedUsername.ToLower().Trim().Equals(sanitizedEmailIdName.ToLower()) || sanitizedUsername.ToLower().Trim().Contains(sanitizedEmailIdName.ToLower()) || sanitizedEmailIdName.ToLower().Contains(sanitizedUsername.ToLower().Trim())) && emailIdWorkSheet.Cells[EmailIdRowIndex, 2].Value != null)
+                                {
+                                    isEmailFound = true;
+                                    string emailId = emailIdWorkSheet.Cells[EmailIdRowIndex, 2].Value.ToString().Trim();
+
+                                    //if the names match then add the email id to the csv array
+                                    csv[1] = emailId;
+                                    //write the csv to the excel sheet
+                                    //destinationWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
+                                }
+                            }
+                        }
+
+                        var Ids = csv[0].Split(',');
+                        if (Ids.Length > 1)
+                        {
+                            foreach (string id in Ids)
+                            {
+                                string[] newCsv = csv;
+                                newCsv[0] = id.Trim();
+                                destinationWorkSheet.Cells[destinationRowIndex, 1].Value = string.Join(";", newCsv);
+
+                                if (!isEmailFound)
+                                {
+                                    destinationWorkSheet.Cells[destinationRowIndex, 3].Value = "Email ID not found";
+                                }
+
+                                destinationRowIndex++;
+                            }
+                        }
+                        else
+                        {
+                            destinationWorkSheet.Cells[destinationRowIndex, 1].Value = string.Join(";", csv);
+
+                            if (!isUserIdFound)
+                            {
+                                destinationWorkSheet.Cells[destinationRowIndex, 2].Value = "User Id not found";
+                            }
+
+                            if (!isEmailFound)
+                            {
+                                destinationWorkSheet.Cells[destinationRowIndex, 3].Value = "Email ID not found";
+                            }
+
+                            destinationRowIndex++;
+                        }
+
+                        //destinationWorkSheet.Cells[destinationRowIndex, 1].Value = string.Join(";", csv);
+
+                        //if (!isUserIdFound)
+                        //{
+                        //    destinationWorkSheet.Cells[destinationRowIndex, 2].Value = "User Id not found";
+                        //}
+
+                        //if (!isEmailFound)
+                        //{
+                        //    destinationWorkSheet.Cells[destinationRowIndex, 3].Value = "Email ID not found";
+                        //}
+
+                        //destinationRowIndex++;
+
                         Console.WriteLine(string.Join(";", csv));
 
-                        if(!isUserIdFound && !isEmailFound)
-                        {
-                            sourceWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
-                        }
+                        //if (!isUserIdFound && !isEmailFound)
+                        //{
+                        //    destinationWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
+                        //}
 
                         //Console.WriteLine(sourceRowIndex);
                         //JobCount++;
@@ -2090,13 +2255,13 @@ namespace PstDataExtractionTools
                     }
                 }
 
-                sourcePackage.Save();
-                //DestinationPackage.Save();
+                //sourcePackage.Save();
+                DestinationPackage.Save();
 
                 sourcePackage.Dispose();
                 UserNamePackage.Dispose();
                 EmailIdPackage.Dispose();
-                //DestinationPackage.Dispose();
+                DestinationPackage.Dispose();
 
                 Console.WriteLine("Done");
             }
@@ -2279,6 +2444,113 @@ namespace PstDataExtractionTools
 
                     Console.WriteLine("Done");
                 }
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("\nThe Excel file cannot be accessed if it is open. Please close the excel file and try again");
+                AddLogs(LogFilePath + "\\", "The Excel file cannot be accessed if it is open. Please close the excel file and try again");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine("\nThe path of the excel file is not valid");
+                AddLogs(LogFilePath + "\\", "The path of the excel file is not valid");
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nError please check logs at " + LogFilePath);
+                AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
+            }
+        }
+
+        private void CreateAktivExcelSheet()
+        {
+            try
+            {
+                var MailboxExcelFilePath = @"C:\Users\s.poojary\Desktop\Exchange_alle_Postfächer_Aktiv12345_2019-05-02.xlsx";
+                var UserIdExcelFilePath = @"C:\Users\s.poojary\Desktop\NordLB_exchange_User_for_mapping_FINAL.xlsx";
+                var ExtractedExcelFilePath = @"C:\Users\s.poojary\Desktop\Extracted_Report10-5-19.xlsx";
+                var DestinationExcelFilePath = @"C:\Users\s.poojary\Desktop\Aktiv2.xlsx";
+
+                var mailboxExcelPackage = new ExcelPackage(new FileInfo(MailboxExcelFilePath));
+                var userIdExcelPackage = new ExcelPackage(new FileInfo(UserIdExcelFilePath));
+                var extractedExcelPackage = new ExcelPackage(new FileInfo(ExtractedExcelFilePath));
+                var destinationExcelPackage = new ExcelPackage(new FileInfo(DestinationExcelFilePath));
+
+                var mailboxWorkSheet = mailboxExcelPackage.Workbook.Worksheets["Sheet1"];
+                var userIdWorkSheet = userIdExcelPackage.Workbook.Worksheets["Tabelle1"];
+                var extractedWorkSheet = extractedExcelPackage.Workbook.Worksheets["extracted"];
+                var destinationWorkSheet = destinationExcelPackage.Workbook.Worksheets["Sheet1"];
+
+                int destinationRowIndex = 2;
+                //iterate the rows
+                for (int mailboxRowIndex = 2; mailboxRowIndex <= mailboxWorkSheet.Dimension.End.Row; mailboxRowIndex++)
+                {
+                    var mailboxUsername = mailboxWorkSheet.Cells[mailboxRowIndex, 8].Value.ToString().Trim();
+
+                    bool isUserFound = false;
+                    bool isUserFoundInMapping = false;
+
+                    for (int userIdRowIndex = 2; userIdRowIndex <= userIdWorkSheet.Dimension.End.Row; userIdRowIndex++)
+                    {
+                        var userIdUsername = userIdWorkSheet.Cells[userIdRowIndex, 3].Value.ToString().Trim();
+
+                        var sanitizedmailboxName = mailboxUsername.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+                        var sanitizedUserIdName = userIdUsername.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+
+
+                        if (sanitizedmailboxName.Contains(sanitizedUserIdName) || sanitizedUserIdName.Contains(sanitizedmailboxName))
+                        {
+                            isUserFoundInMapping = true;
+                            for (int extractedRowIndex = 2; extractedRowIndex <= extractedWorkSheet.Dimension.End.Row; extractedRowIndex++)
+                            {
+                                var userMappingUsername = extractedWorkSheet.Cells[extractedRowIndex, 2].Value.ToString().Trim();
+
+                                //var sanitizedmailboxName = mailboxUsername.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty);
+                                var sanitizedExtractedName = userMappingUsername.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+
+                                if (sanitizedmailboxName.Contains(sanitizedExtractedName) || sanitizedExtractedName.Contains(sanitizedmailboxName))
+                                {
+                                    isUserFound = true;
+                                    extractedWorkSheet.Cells[extractedRowIndex, 2, extractedRowIndex, 14].Copy(destinationWorkSheet.Cells[destinationRowIndex, 2, destinationRowIndex, 14]);
+                                    destinationRowIndex++;
+
+                                }
+                            }
+
+                        }
+                    }
+
+
+                    if (!isUserFoundInMapping)
+                    {
+                        destinationWorkSheet.Cells[destinationRowIndex, 2].Value = mailboxUsername;
+                        destinationWorkSheet.Cells[destinationRowIndex, 15].Value = "Not Required";
+                        destinationRowIndex++;
+                    }
+
+
+                    if (isUserFoundInMapping && !isUserFound)
+                    {
+                        destinationWorkSheet.Cells[destinationRowIndex, 2].Value = mailboxUsername;
+                        destinationWorkSheet.Cells[destinationRowIndex, 15].Value = "Not Found in extracted";
+                        destinationRowIndex++;
+                    }
+
+                    Console.WriteLine(mailboxRowIndex);
+                }
+
+                destinationExcelPackage.Save();
+
+                mailboxExcelPackage.Dispose();
+                extractedExcelPackage.Dispose();
+                destinationExcelPackage.Dispose();
+
+                Console.WriteLine("Done");
             }
             catch (IOException)
             {
