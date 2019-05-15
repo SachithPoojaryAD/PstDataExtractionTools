@@ -2146,11 +2146,13 @@ namespace PstDataExtractionTools
                     var username = sourceWorkSheet.Cells[sourceRowIndex, 2].Value.ToString().Trim();
                     if (!string.IsNullOrWhiteSpace(username) && !username.Equals("Users"))
                     {
+                        //create a new csv array and initialize it
                         string[] csv = new string[4];
                         csv[0] = "";
                         csv[1] = "";
                         csv[2] = "emailarchiv_new";
                         csv[3] = username;
+                        //remove special characters from the name
                         var sanitizedUsername = username.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
 
                         bool isUserIdFound = false;
@@ -2180,6 +2182,7 @@ namespace PstDataExtractionTools
                             var EmailIdName = emailIdWorkSheet.Cells[EmailIdRowIndex, 9].Value.ToString().Trim();
                             if (!string.IsNullOrWhiteSpace(EmailIdName.ToString()) && !EmailIdName.ToString().Trim().Equals("ArchivName"))
                             {
+                                //remove special characters from the name
                                 var sanitizedEmailIdName = EmailIdName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
                                 if ((sanitizedUsername.ToLower().Trim().Equals(sanitizedEmailIdName.ToLower()) || sanitizedUsername.ToLower().Trim().Contains(sanitizedEmailIdName.ToLower()) || sanitizedEmailIdName.ToLower().Contains(sanitizedUsername.ToLower().Trim())) && emailIdWorkSheet.Cells[EmailIdRowIndex, 2].Value != null)
                                 {
@@ -2194,6 +2197,7 @@ namespace PstDataExtractionTools
                             }
                         }
 
+                        //check if the id string in the csv array contains more than 1 ids
                         var Ids = csv[0].Split(',');
                         if (Ids.Length > 1)
                         {
@@ -2201,6 +2205,7 @@ namespace PstDataExtractionTools
                             {
                                 string[] newCsv = csv;
                                 newCsv[0] = id.Trim();
+                                //create a seperate entry for each individual id
                                 destinationWorkSheet.Cells[destinationRowIndex, 1].Value = string.Join(";", newCsv);
 
                                 if (!isEmailFound)
@@ -2213,6 +2218,7 @@ namespace PstDataExtractionTools
                         }
                         else
                         {
+                            //else add the csv string in the excel sheet
                             destinationWorkSheet.Cells[destinationRowIndex, 1].Value = string.Join(";", csv);
 
                             if (!isUserIdFound)
