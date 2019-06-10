@@ -59,7 +59,8 @@ namespace PstDataExtractionTools
                 "12) Generate CSV Customer Mapping\n" +
                 "13) Generate User Status Excel\n" +
                 "14) Generate Excel Sheet for AKtiv users\n" +
-                "15) Exit\n");
+                "15) Get CSV from Postfach\n" +
+                "16) Exit\n");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -136,6 +137,10 @@ namespace PstDataExtractionTools
                     prog.CreateAktivExcelSheet();
                     break;
                 case 15:
+                    Console.WriteLine("Get CSV from Postfach");
+                    prog.GetCSVFromPostfach();
+                    break;
+                case 16:
                     Environment.Exit(0);
                     break;
                 default:
@@ -852,21 +857,22 @@ namespace PstDataExtractionTools
 
                     /*uncomment if you want to remove count from file name*/
                     //if dash(-) exists in folder name, then remove it and its proceding characters
-                    //if (strFolderName.Contains("-") && int.TryParse(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1), out int n))
-                    //{
-                    //    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
-                    //}
+                    if (strFolderName.Contains("-") && int.TryParse(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1), out int n))
+                    {
+                        strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
+                    }
 
                     /*uncomment if you want to remove 'extern' from file name*/
                     //if folder name contains 'extern', then remove it and its preceding string
-                    //if (strFolderName.Contains("-") && "extern".Contains(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1).ToLower().Trim()))
-                    //{
-                    //    strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
-                    //}
+                    if (strFolderName.Contains("-") && "extern".Contains(strFolderName.Substring(strFolderName.LastIndexOf("-") + 1).ToLower().Trim()))
+                    {
+                        strFolderName = strFolderName.Substring(0, strFolderName.LastIndexOf("-"));
+                    }
 
                     strFolderName += "_" + currentActivFolder;
 
-                    int folderCounter = 0;
+                    //used counter for file name in case of multiple pst files
+                    int fileCounter = 0;
                     DirectoryInfo folderDirectory = new DirectoryInfo(folder);
                     //check if folder contains pst files
                     foreach (var file in folderDirectory.GetFiles().OrderBy(f => f.Name))
@@ -880,12 +886,16 @@ namespace PstDataExtractionTools
                             //{
                             try
                             {
+                                //var newFileName = file.FullName.Substring(file.FullName.LastIndexOf("\\") + 1).Replace(".pst", string.Empty);
+                                //newFileName += "_" + strFolderName;
                                 //var newFileName = file.DirectoryName + "\\" + file.DirectoryName.Substring(file.DirectoryName.LastIndexOf("\\") + 1) + ".pst";
-                                var newFileName = file.DirectoryName + "\\" + strFolderName + (folderCounter == 0 ? string.Empty : folderCounter.ToString()) + ".pst";
-                                folderCounter++;
-                                Directory.Move(file.FullName, newFileName);
-                                Console.WriteLine("Renamed File: " + file.FullName + " to " + newFileName);
-                                AddLogs(LogFilePath + "\\", "Renamed File: " + file.FullName + " to " + newFileName);
+                                //var newFilePath = file.DirectoryName + "\\" + newFileName + ".pst";
+                                var newFilePath = file.DirectoryName + "\\" + strFolderName + (fileCounter == 0 ? string.Empty : fileCounter.ToString()) + ".pst";
+                                JobCount++;
+                                fileCounter++;
+                                Directory.Move(file.FullName, newFilePath);
+                                Console.WriteLine("Renamed File: " + file.FullName + " to " + newFilePath);
+                                AddLogs(LogFilePath + "\\", "Renamed File: " + file.FullName + " to " + newFilePath);
                             }
                             catch (IOException ex)
                             {
@@ -1962,7 +1972,8 @@ namespace PstDataExtractionTools
                 //using (MySqlConnection con = new MySqlConnection(constring))
                 //{
                 //string query = @"select count(*) from emailarchiv_test_final.emailarchiv_new where path like @Path;";
-                string query = @"select count(*) from emailarchiv_test_final.emailarchiv_new where Postfach like @Postfach and path like @Path;";
+                string query = @"select count(*), postfach from emailarchiv_test_final.emailarchiv_new where Postfach like @Postfach and path like @Path;";
+                //string query = @"select count(*), postfach from nord_lb_email_archiv.emailarchiv_new group by postfach ;";
 
                 string count = null;
                 using (MySqlCommand cmd = new MySqlCommand(query, con))
@@ -1996,13 +2007,12 @@ namespace PstDataExtractionTools
         /// </summary>
         private void GenerateCSVCustomerMapping()
         {
-
             try
             {
-                var SourceExcelFilePath = new FileInfo(@"C:\Users\s.poojary\Desktop\EmailArcheve_FinalList.xlsx");
-                var UserNameExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\NordLB_exchange_User_for_mapping_FINAL.xlsx");
-                var EmailIdExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\Export Archive_28.2.2019_2(1).xlsx");
-                var DestinationExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\csv.xlsx");
+                var SourceExcelFilePath = new FileInfo(@"C:\Users\s.poojary\Desktop\New folder\EmailArcheve_FinalList.xlsx");
+                var UserNameExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\New folder\NordLB_exchange_User_for_mapping_FINAL.xlsx");
+                var EmailIdExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\New folder\Exchange_alle_Postfächer_Aktiv12345_2019-05-02.xlsx");
+                var DestinationExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\New folder\csv.xlsx");
 
                 //InitialLog = new StringBuilder();
                 //AddLogs(LogFilePath + "\\", "\nSource Excel file path: " + SourceExcelFilePath);
@@ -2013,10 +2023,10 @@ namespace PstDataExtractionTools
                 var EmailIdPackage = new ExcelPackage(EmailIdExcelSheet);
                 var DestinationPackage = new ExcelPackage(DestinationExcelSheet);
 
-                var sourceWorkSheet = UserNamePackage.Workbook.Worksheets["Sheet1"];
+                var sourceWorkSheet = UserNamePackage.Workbook.Worksheets["Tabelle1"];
                 var userNameWorkSheet = UserNamePackage.Workbook.Worksheets["Tabelle1"];
                 var emailIdWorkSheet = EmailIdPackage.Workbook.Worksheets["Postfächer"];
-                var destinationWorkSheet = DestinationPackage.Workbook.Worksheets["Sheet2"];
+                var destinationWorkSheet = DestinationPackage.Workbook.Worksheets["Sheet1"];
 
                 //iterate the rows
                 int destinationRowIndex = 1;
@@ -2143,8 +2153,8 @@ namespace PstDataExtractionTools
 
                 for (int sourceRowIndex = 1; sourceRowIndex <= sourceWorkSheet.Dimension.End.Row; sourceRowIndex++)
                 {
-                    var username = sourceWorkSheet.Cells[sourceRowIndex, 2].Value.ToString().Trim();
-                    if (!string.IsNullOrWhiteSpace(username) && !username.Equals("Users"))
+                    var username = sourceWorkSheet.Cells[sourceRowIndex, 3].Value.ToString().Trim();
+                    if (!string.IsNullOrWhiteSpace(username) && !username.Equals("ArchivName"))
                     {
                         //create a new csv array and initialize it
                         string[] csv = new string[4];
@@ -2153,7 +2163,7 @@ namespace PstDataExtractionTools
                         csv[2] = "emailarchiv_new";
                         csv[3] = username;
                         //remove special characters from the name
-                        var sanitizedUsername = username.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+                        var sanitizedUsername = username.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant().Trim();
 
                         bool isUserIdFound = false;
                         for (int userNameRowIndex = 1; userNameRowIndex <= userNameWorkSheet.Dimension.End.Row; userNameRowIndex++)
@@ -2161,8 +2171,8 @@ namespace PstDataExtractionTools
                             var IdUserName = userNameWorkSheet.Cells[userNameRowIndex, 3].Value.ToString().Trim();
                             if (!string.IsNullOrWhiteSpace(IdUserName) && !IdUserName.Equals("ArchivName"))
                             {
-                                var sanitizedIdUserName = IdUserName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
-                                if ((sanitizedUsername.ToLower().Trim().Equals(sanitizedIdUserName.ToLower()) || sanitizedUsername.ToLower().Trim().Contains(sanitizedIdUserName.ToLower()) || sanitizedIdUserName.ToLower().Contains(sanitizedUsername.ToLower().Trim())) && userNameWorkSheet.Cells[userNameRowIndex, 2].Value != null)
+                                var sanitizedIdUserName = IdUserName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant().Trim();
+                                if (sanitizedUsername.Equals(sanitizedIdUserName) && userNameWorkSheet.Cells[userNameRowIndex, 2].Value != null)
                                 {
                                     isUserIdFound = true;
                                     string userId = userNameWorkSheet.Cells[userNameRowIndex, 2].Value.ToString().Trim();
@@ -2171,6 +2181,7 @@ namespace PstDataExtractionTools
                                     csv[0] = userId;
                                     //write the csv to the excel sheet
                                     //destinationWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
+                                    break;
                                 }
 
                             }
@@ -2179,20 +2190,21 @@ namespace PstDataExtractionTools
                         bool isEmailFound = false;
                         for (int EmailIdRowIndex = 1; EmailIdRowIndex <= emailIdWorkSheet.Dimension.End.Row; EmailIdRowIndex++)
                         {
-                            var EmailIdName = emailIdWorkSheet.Cells[EmailIdRowIndex, 9].Value.ToString().Trim();
+                            var EmailIdName = emailIdWorkSheet.Cells[EmailIdRowIndex, 8].Value.ToString().Trim();
                             if (!string.IsNullOrWhiteSpace(EmailIdName.ToString()) && !EmailIdName.ToString().Trim().Equals("ArchivName"))
                             {
                                 //remove special characters from the name
-                                var sanitizedEmailIdName = EmailIdName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
-                                if ((sanitizedUsername.ToLower().Trim().Equals(sanitizedEmailIdName.ToLower()) || sanitizedUsername.ToLower().Trim().Contains(sanitizedEmailIdName.ToLower()) || sanitizedEmailIdName.ToLower().Contains(sanitizedUsername.ToLower().Trim())) && emailIdWorkSheet.Cells[EmailIdRowIndex, 2].Value != null)
+                                var sanitizedEmailIdName = EmailIdName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant().Trim();
+                                if (sanitizedUsername.Equals(sanitizedEmailIdName) && emailIdWorkSheet.Cells[EmailIdRowIndex, 2].Value != null)
                                 {
                                     isEmailFound = true;
-                                    string emailId = emailIdWorkSheet.Cells[EmailIdRowIndex, 2].Value.ToString().Trim();
+                                    string emailId = emailIdWorkSheet.Cells[EmailIdRowIndex, 1].Value.ToString().Trim();
 
                                     //if the names match then add the email id to the csv array
                                     csv[1] = emailId;
                                     //write the csv to the excel sheet
                                     //destinationWorkSheet.Cells[sourceRowIndex, 1].Value = string.Join(";", csv);
+                                    break;
                                 }
                             }
                         }
@@ -2555,6 +2567,103 @@ namespace PstDataExtractionTools
                 mailboxExcelPackage.Dispose();
                 extractedExcelPackage.Dispose();
                 destinationExcelPackage.Dispose();
+
+                Console.WriteLine("Done");
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("\nThe Excel file cannot be accessed if it is open. Please close the excel file and try again");
+                AddLogs(LogFilePath + "\\", "The Excel file cannot be accessed if it is open. Please close the excel file and try again");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine("\nThe path of the excel file is not valid");
+                AddLogs(LogFilePath + "\\", "The path of the excel file is not valid");
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nError please check logs at " + LogFilePath);
+                AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
+            }
+        }
+
+        private void GetCSVFromPostfach()
+        {
+            try
+            {
+                var SourceExcelFilePath = new FileInfo(@"C:\Users\s.poojary\Desktop\OKcsv.xlsx");
+                var UserCountExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\Email Count.xlsx");
+                var DestinationExcelSheet = new FileInfo(@"C:\Users\s.poojary\Desktop\FinalCSV_17-5-19.xlsx");
+
+                //InitialLog = new StringBuilder();
+                //AddLogs(LogFilePath + "\\", "\nSource Excel file path: " + SourceExcelFilePath);
+                //AddLogs(LogFilePath + "\\", "\nDestination Excel file path: " + UserNameExcelSheet);
+
+                var sourcePackage = new ExcelPackage(SourceExcelFilePath);
+                var UserCountPackage = new ExcelPackage(UserCountExcelSheet);
+                var DestinationPackage = new ExcelPackage(DestinationExcelSheet);
+
+                var sourceWorkSheet = sourcePackage.Workbook.Worksheets["Sheet1"];
+                var userCountWorkSheet = UserCountPackage.Workbook.Worksheets["Sheet1"];
+                var destinationWorkSheet = DestinationPackage.Workbook.Worksheets["Sheet2"];
+
+                //iterate the rows
+                int destinationRowIndex = 1;
+
+                for (int userCountRowIndex = 1; userCountRowIndex <= userCountWorkSheet.Dimension.End.Row; userCountRowIndex++)
+                {
+                    var IdUserName = userCountWorkSheet.Cells[userCountRowIndex, 2].Value.ToString().Trim();
+                    if (!string.IsNullOrWhiteSpace(IdUserName) && !IdUserName.Equals("Postfach"))
+                    {
+                        var sanitizedIdUserName = IdUserName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant().Trim();
+
+                        bool isUserFound = false;
+                        for (int sourceRowIndex = 2; sourceRowIndex <= sourceWorkSheet.Dimension.End.Row; sourceRowIndex++)
+                        {
+                            var sourceCSV = sourceWorkSheet.Cells[sourceRowIndex, 1].Value.ToString().Trim();
+                            if (!string.IsNullOrWhiteSpace(sourceCSV))
+                            {
+                                //split the csv file based on the delimeter
+                                var csv = sourceCSV.Split(';');
+
+                                //get the username and add a comma after first name
+                                //var arrUserName = csv[3].Split(' ');
+                                //var username = string.Join(", ", arrUserName);
+                                var username = csv[3];
+                                var sanitizedUsername = username.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant().Trim();
+
+                                if (sanitizedIdUserName.Equals(sanitizedUsername))
+                                {
+                                    isUserFound = true;
+                                    destinationWorkSheet.Cells[destinationRowIndex, 1].Value = sourceWorkSheet.Cells[sourceRowIndex, 1].Value;
+                                    destinationWorkSheet.Cells[destinationRowIndex, 2].Value = sourceWorkSheet.Cells[sourceRowIndex, 2].Value;
+                                    destinationWorkSheet.Cells[destinationRowIndex, 3].Value = sourceWorkSheet.Cells[sourceRowIndex, 3].Value;
+                                    destinationWorkSheet.Cells[destinationRowIndex, 4].Value = userCountWorkSheet.Cells[userCountRowIndex, 1].Value;
+                                    destinationRowIndex++;
+                                }
+                            }
+                        }
+                        if (!isUserFound)
+                        {
+                            Console.WriteLine("Not Found: " + IdUserName);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Found: " + IdUserName);
+                        }
+                    }
+                }
+
+                DestinationPackage.Save();
+
+                sourcePackage.Dispose();
+                UserCountPackage.Dispose();
+                DestinationPackage.Dispose();
 
                 Console.WriteLine("Done");
             }
