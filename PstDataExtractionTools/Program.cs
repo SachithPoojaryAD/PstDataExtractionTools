@@ -2688,5 +2688,112 @@ namespace PstDataExtractionTools
                 AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
             }
         }
+
+        private void GetFolderNameForUser()
+        {
+            string ExcelFileName = @"C:\Users\s.poojary\Desktop\UsersFolders.xlsx";
+            string FolderName = @"D:\Sachith\PstTest\pstofbothAktiv1andAktiv2";
+
+            try
+            {
+                var ExcelSheet = new FileInfo(ExcelFileName);
+                using (var excelPackage = new ExcelPackage(ExcelSheet))
+                {
+                    var WorkSheet = excelPackage.Workbook.Worksheets["Sheet1"];
+
+                    //loop all rows
+                    for (int rowIndex = 2; rowIndex <= WorkSheet.Dimension.End.Row; rowIndex++)
+                    {
+                        var username = WorkSheet.Cells[rowIndex, 1].Value.ToString().Trim();
+                        var sanitizedAktivName = username.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty);
+
+                        try
+                        {
+                            var directory = Directory.GetDirectories(FolderName).ToList();
+
+                            var a = directory.Where(x =>
+                            {
+                                var sanitizedFolderName = x.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty);
+                                if (sanitizedFolderName.Contains(sanitizedAktivName) || sanitizedAktivName.Contains(sanitizedFolderName))
+                                {
+                                    Console.WriteLine(rowIndex);
+                                    AddLogs(LogFilePath + "\\", "Found: " + username);
+                                    return true;
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Not Found: " + username);
+                                    AddLogs(LogFilePath + "\\", "Not Found: " + username);
+                                    return false;
+                                }
+
+                            }).ToList();
+
+                            string cellText = null;
+
+                            if (WorkSheet.Cells[rowIndex, 2].Value != null)
+                            {
+                                cellText = WorkSheet.Cells[rowIndex, 2].Value.ToString().Trim();
+                                cellText = "\n" + string.Join("\n", a);
+                            }
+                            else
+                            {
+                                cellText = string.Join("\n", a);
+                            }
+
+                            WorkSheet.Cells[rowIndex, 2].Value = cellText;
+
+                            //foreach (var directory in Directory.GetDirectories(FolderName))
+                            //{
+                            //        //StreamWriter sw = new StreamWriter(destinationPath, true, Encoding.UTF8);
+                            //        var lines = File.ReadAllLines(filePath);
+                            //        for (var i = 0; i < lines.Length; i += 1)
+                            //        {
+                            //            var line = lines[i];
+                            //            line = line.Replace(",", string.Empty);
+                            //            //check if the current line contains the user name
+                            //            if (directory.Trim().ToLower().Contains(line.Trim().ToLower()))
+                            //            {
+                            //                //sw.WriteLine(directory);
+                            //                AddLogs(LogFilePath + "\\", "\nUser Found: " + line + " - " + directory);
+                            //                Console.WriteLine(directory);
+                            //            }
+                            //        }
+
+                            //}
+                        }
+                        catch (System.Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                        }
+
+                    }
+
+                    excelPackage.Save();
+
+                    Console.WriteLine("Done");
+                }
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine("\nThe Excel file cannot be accessed if it is open. Please close the excel file and try again");
+                AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine("\nThe path of the excel file is not valid");
+                AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
+            }
+            catch (InvalidFilePathException ex)
+            {
+                Console.WriteLine(ex.Message);
+                AddLogs(LogFilePath + "\\", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("\nError please check logs at " + LogFilePath);
+                AddLogs(LogFilePath + "\\", ex.Message + " stacktrace:- " + ex.StackTrace);
+            }
+        }
     }
 }
