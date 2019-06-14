@@ -2737,7 +2737,8 @@ namespace PstDataExtractionTools
 
                             foreach (var directory in Directory.GetDirectories(FolderName))
                             {
-                                var sanitizedFolderName = directory.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+                                var folderName = directory.Substring(directory.LastIndexOf("\\") + 1).Replace(" ", string.Empty);
+                                var sanitizedFolderName = folderName.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
 
                                 if ((sanitizedFolderName.Contains(sanitizedAktivName) || sanitizedAktivName.Contains(sanitizedFolderName)) && sanitizedFolderName.Contains("aktiv"))
                                 {
