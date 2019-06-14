@@ -2709,69 +2709,82 @@ namespace PstDataExtractionTools
                     //loop all rows
                     for (int rowIndex = 2; rowIndex <= WorkSheet.Dimension.End.Row; rowIndex++)
                     {
+                        bool isUserFound = false;
                         var username = WorkSheet.Cells[rowIndex, 1].Value.ToString().Trim();
-                        var sanitizedAktivName = username.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty);
+                        var sanitizedAktivName = username.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
 
                         try
                         {
-                            var directory = Directory.GetDirectories(FolderName).ToList();
+                            //var directory = Directory.GetDirectories(FolderName).ToList();
 
-                            var a = directory.Where(x =>
+                            //var a = directory.Where(x =>
+                            //{
+                            //    var sanitizedFolderName = x.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty);
+                            //    if (sanitizedFolderName.Contains(sanitizedAktivName) || sanitizedAktivName.Contains(sanitizedFolderName))
+                            //    {
+                            //        Console.WriteLine(rowIndex);
+                            //        AddLogs(LogFilePath + "\\", "Found: " + username);
+                            //        return true;
+                            //    }
+                            //    else
+                            //    {
+                            //        Console.WriteLine("Not Found: " + username);
+                            //        AddLogs(LogFilePath + "\\", "Not Found: " + username);
+                            //        return false;
+                            //    }
+
+                            //}).ToList();
+
+                            foreach (var directory in Directory.GetDirectories(FolderName))
                             {
-                                var sanitizedFolderName = x.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty);
+                                var sanitizedFolderName = directory.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
+
                                 if (sanitizedFolderName.Contains(sanitizedAktivName) || sanitizedAktivName.Contains(sanitizedFolderName))
                                 {
+                                    string cellText = null;
+
+                                    if (WorkSheet.Cells[rowIndex, 2].Value != null)
+                                    {
+                                        cellText = WorkSheet.Cells[rowIndex, 2].Value.ToString().Trim();
+                                        cellText = "\n" + directory;
+                                    }
+                                    else
+                                    {
+                                        cellText = directory;
+                                    }
+
+                                    WorkSheet.Cells[rowIndex, 2].Value = cellText;
                                     Console.WriteLine(rowIndex);
                                     AddLogs(LogFilePath + "\\", "Found: " + username);
-                                    return true;
-                                }
-                                else
-                                {
-                                    Console.WriteLine("Not Found: " + username);
-                                    AddLogs(LogFilePath + "\\", "Not Found: " + username);
-                                    return false;
+                                    isUserFound = true;
                                 }
 
-                            }).ToList();
+                                //var lines = File.ReadAllLines(filePath);
+                                //for (var i = 0; i < lines.Length; i += 1)
+                                //{
+                                //    var line = lines[i];
+                                //    line = line.Replace(",", string.Empty);
+                                //    //check if the current line contains the user name
+                                //    if (directory.Trim().ToLower().Contains(line.Trim().ToLower()))
+                                //    {
+                                //        //sw.WriteLine(directory);
+                                //        AddLogs(LogFilePath + "\\", "\nUser Found: " + line + " - " + directory);
+                                //        Console.WriteLine(directory);
+                                //    }
+                                //}
 
-                            string cellText = null;
-
-                            if (WorkSheet.Cells[rowIndex, 2].Value != null)
-                            {
-                                cellText = WorkSheet.Cells[rowIndex, 2].Value.ToString().Trim();
-                                cellText = "\n" + string.Join("\n", a);
                             }
-                            else
-                            {
-                                cellText = string.Join("\n", a);
-                            }
-
-                            WorkSheet.Cells[rowIndex, 2].Value = cellText;
-
-                            //foreach (var directory in Directory.GetDirectories(FolderName))
-                            //{
-                            //        //StreamWriter sw = new StreamWriter(destinationPath, true, Encoding.UTF8);
-                            //        var lines = File.ReadAllLines(filePath);
-                            //        for (var i = 0; i < lines.Length; i += 1)
-                            //        {
-                            //            var line = lines[i];
-                            //            line = line.Replace(",", string.Empty);
-                            //            //check if the current line contains the user name
-                            //            if (directory.Trim().ToLower().Contains(line.Trim().ToLower()))
-                            //            {
-                            //                //sw.WriteLine(directory);
-                            //                AddLogs(LogFilePath + "\\", "\nUser Found: " + line + " - " + directory);
-                            //                Console.WriteLine(directory);
-                            //            }
-                            //        }
-
-                            //}
                         }
                         catch (System.Exception ex)
                         {
                             Console.WriteLine(ex.Message);
                         }
 
+                        if (!isUserFound)
+                        {
+                            Console.WriteLine("Not Found: " + username);
+                            AddLogs(LogFilePath + "\\", "Not Found: " + username);
+                        }
                     }
 
                     excelPackage.Save();
