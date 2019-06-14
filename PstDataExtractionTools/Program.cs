@@ -60,7 +60,8 @@ namespace PstDataExtractionTools
                 "13) Generate User Status Excel\n" +
                 "14) Generate Excel Sheet for AKtiv users\n" +
                 "15) Get CSV from Postfach\n" +
-                "16) Exit\n");
+                "16) Get Folder Name For User\n" +
+                "17) Exit\n");
             int selection = 0;
             int.TryParse(Console.ReadLine(), out selection);
 
@@ -141,6 +142,10 @@ namespace PstDataExtractionTools
                     prog.GetCSVFromPostfach();
                     break;
                 case 16:
+                    Console.WriteLine("Get Folder Name For User");
+                    prog.GetFolderNameForUser();
+                    break;
+                case 17:
                     Environment.Exit(0);
                     break;
                 default:
