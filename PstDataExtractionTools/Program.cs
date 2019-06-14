@@ -2739,7 +2739,7 @@ namespace PstDataExtractionTools
                             {
                                 var sanitizedFolderName = directory.Replace("-", string.Empty).Replace(" ", string.Empty).Replace(",", string.Empty).Replace(".", string.Empty).ToLowerInvariant();
 
-                                if (sanitizedFolderName.Contains(sanitizedAktivName) || sanitizedAktivName.Contains(sanitizedFolderName))
+                                if ((sanitizedFolderName.Contains(sanitizedAktivName) || sanitizedAktivName.Contains(sanitizedFolderName)) && sanitizedFolderName.Contains("aktiv"))
                                 {
                                     string cellText = null;
 
